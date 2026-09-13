@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#172432">
+  <meta name="description" content="Plan tygodnia ekipy. Import Excela, kolejność paczkomatów i nawigacja Google Maps.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="PaczkoPlan">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+  <link rel="icon" type="image/png" href="./icon-192.png">
+  <link rel="stylesheet" href="./vendor/leaflet.css">
+  <link rel="stylesheet" href="./styles.css">
+  <title>PaczkoPlan — plan ekipy</title>
+</head>
+<body>
+  <div id="app"><main class="boot"><strong>PaczkoPlan</strong><p>Otwieram zapisany plan…</p></main></div>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <dialog id="modal" aria-labelledby="modal-title"></dialog>
+  <input type="file" id="excel-input" accept=".xlsx,.xls,.csv" hidden>
+  <input type="file" id="backup-input" accept=".json,.paczkoplan" hidden>
+  <script src="./vendor/xlsx.full.min.js"></script>
+  <script src="./vendor/leaflet.js"></script>
+  <script type="module" src="./app.js"></script>
+  <noscript>Włącz JavaScript, aby otworzyć PaczkoPlan.</noscript>
+</body>
+</html>

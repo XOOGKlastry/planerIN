@@ -1,0 +1,17 @@
+{
+  "id": "./",
+  "name": "PaczkoPlan — plan ekipy",
+  "short_name": "PaczkoPlan",
+  "description": "Import Excela, plan tygodnia i nawigacja Google Maps.",
+  "lang": "pl",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f2f4f7",
+  "theme_color": "#172432",
+  "icons": [
+    { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icon-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

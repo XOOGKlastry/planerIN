@@ -9,7 +9,7 @@ Sprawdzono 2026-09-13. Repozytorium nie zawiera danych zleceń użytkownika ani 
 | OSRM demo | Macierz sekund/metrów, przebieg i odcinki trasy driving | https://router.project-osrm.org |
 | OpenStreetMap | Kafelki podkładu, dane ODbL | https://tile.openstreetmap.org/{z}/{x}/{y}.png |
 
-Współrzędne w danych aplikacji są w EPSG:4326, nazwane `lat` i `lng`. Parametry OSRM mają kolejność `lng,lat`; Leaflet używa `lat,lng`. GeoJSON używa `lng,lat`. Koszty przejazdu są w sekundach i metrach; czas usługi w minutach. Daty tygodni nie są konwertowane przez UTC. Data pobrania oraz źródło są zapisywane przy lokalizacjach i wynikach tras.
+Współrzędne w danych aplikacji są w EPSG:4326, nazwane `lat` i `lng`. Parametry OSRM mają kolejność `lng,lat`; Leaflet używa `lat,lng`. GeoJSON używa `lng,lat`. Koszty przejazdu są w sekundach i metrach, w aplikacji przeliczane na minuty. Daty tygodni nie są konwertowane przez UTC. Data pobrania oraz źródło są zapisywane przy lokalizacjach i wynikach tras.
 
 Brak GPS nie jest zerem. Niejednoznaczne adresy wymagają zatwierdzenia. Dopasowanie punktu do drogi dalej niż 400 m zatrzymuje obliczenia i prosi o poprawienie pinezki. Nie ma modelu aktualnego ruchu drogowego ani ograniczeń ciężarówek.
 

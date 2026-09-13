@@ -7,8 +7,8 @@ Bezpłatna aplikacja PWA dla ekipy montującej i serwisującej paczkomaty. Dzia�
 1. Otwórz opublikowaną stronę w Safari na iPhonie.
 2. Udostępnij → Do ekranu początkowego → Otwórz jako aplikację www → Dodaj.
 3. Uruchom ikonę PaczkoPlan. Wczytaj Excel z aplikacji Pliki.
-4. W Ustawieniach wybierz miejsce startu/powrotu. Domyślnie praca trwa 07:00–17:00, od poniedziałku do piątku.
-5. Sprawdź czasy usług i ewentualne warunki wyjazdu. Naciśnij „Zaplanuj tydzień”.
+4. W Ustawieniach wybierz miejsce startu/powrotu i dni pracy (domyślnie poniedziałek–piątek).
+5. Naciśnij „Policz odległości”. Na każdy dzień sam wybierz pierwszy przystanek, a potem kolejne z podpowiadanej listy „co jest po drodze”.
 
 Safari i PWA mogą mieć oddzielny zapis. Jeśli zaczynasz w Safari, zapisz kopię planu i wczytaj ją po instalacji. Plik ZIP zawiera aplikację do hostowania; na iPhonie aplikację instaluje się z adresu HTTPS, a nie otwierając HTML z ZIP.
 
@@ -19,20 +19,19 @@ Importer rozpoznaje nagłówki, niezależnie od ich kolejności. Obsługuje XLSX
 - `Data` oznacza tydzień realizacji, a nie sztywny dzień wykonania.
 - `Ekipy`, `Miasto`, `Kod pocztowy`, `Zaplanowane prace`, `Podłoże`, `Uwagi Global`, `Komentarz GPBS`, `Zgłoszenie`, `Miejsce` i telefony są zachowane.
 - Szczegóły wizyty pokazują wszystkie niepuste nazwane kolumny źródłowe.
-- Dwie różne prace przy tym samym punkcie są dwoma zleceniami i mogą być jedną wizytą. Czasy prac sumują się.
-- Kolumna `Czas [min]` może zawierać czas pracy. Gdy jej brakuje, stosowane są jawne propozycje: pomiary 45 min, serwis 60 min, dodatkowe 90 min, gwarancyjne 60 min, montaż 180 min. To ustawienia planistyczne, nie dane z Excela.
+- Dwie różne prace przy tym samym punkcie są dwoma zleceniami i mogą być jedną wizytą (jeden dojazd).
 - Uwagi „nie jechać bez potwierdzenia” wymagają zaznaczenia potwierdzenia w szczegółach. Oryginalny tekst pozostaje widoczny.
-- Ponowny import tego samego pliku nie dubluje zleceń. Zachowuje ręczny czas, status i przypięty dzień. Identyfikacja wykorzystuje tydzień, ekipę, punkt i identyfikator zgłoszenia lub miejsca oraz typ pracy. Bez identyfikatora zgłoszenia istotnie zmieniony opis może zostać rozpoznany jako nowe zadanie — sprawdź podsumowanie importu.
+- Ponowny import tego samego pliku nie dubluje zleceń. Zachowuje status i przypisany dzień. Identyfikacja wykorzystuje tydzień, ekipę, punkt i identyfikator zgłoszenia lub miejsca oraz typ pracy. Bez identyfikatora zgłoszenia istotnie zmieniony opis może zostać rozpoznany jako nowe zadanie — sprawdź podsumowanie importu.
 
 ## Planowanie
 
-Algorytm działa w JavaScript na urządzeniu. Wykorzystuje macierz drogowych czasów OSRM, wielokrotne deterministyczne wstawianie, przenoszenie między dniami i dokładne szukanie kolejności dla tras do 11 wizyt. Dłuższe trasy poprawia kierunkowy 2-opt. Podział całego tygodnia jest heurystyką, bez gwarancji globalnego optimum.
+Nie ma automatycznego układania całego tygodnia ani szacowania czasu pracy — to Ty decydujesz o kolejności i podziale na dni. Dla wybranego dnia aplikacja pokazuje pozostałe zlecenia posortowane według czasu dojazdu od ostatnio dodanego przystanku (lub od bazy, jeśli dzień jest jeszcze pusty) — najbliższy jest oznaczony „Najbliżej”. Wybierasz, klikając „Dodaj”; podpowiedź to sugestia, nie wymóg.
 
-Podstawowym kosztem jest czas jazdy. Każdy dzień obejmuje wyjazd z bazy, czasy usług i powrót. Plan nie dodaje przerw. Algorytm celowo nie zostawia dnia roboczego całkiem pustego, jeśli da się do niego przenieść choć jedną niepodpiętą wizytę z bardziej obciążonego dnia bez przekroczenia godzin pracy. Po ręcznym przeniesieniu wizyta może przekroczyć limit dnia — godzina powrotu zostanie wyróżniona. Przeciąganie działa na komputerze, a przyciski góra/dół i „Zmień dzień” także na telefonie. Przypięty dzień jest zachowywany podczas ponownego planowania. Dni, w których rozpoczęto już prace, pozostają zachowane podczas przeliczania tygodnia.
+Przy każdym kandydacie widać też czas powrotu do bazy, gdyby to on był ostatnim przystankiem tego dnia — pozwala to uniknąć sytuacji, w której dzień kończy się daleko od bazy z długim powrotem. Podsumowanie dnia pokazuje łączny czas jazdy między przystankami i czas powrotu z ostatniego punktu; powrót dłuższy niż godzinę jest wyróżniony.
 
-Zlecenia bez współrzędnych, niepotwierdzone lub niemieszczące się w godzinach trafiają do „Do zaplanowania”. Aplikacja nie zastępuje nieznanego dojazdu zerem ani fikcyjną trasą w linii prostej. Do jednego przeliczenia obsługiwanych jest do 70 lokalizacji. Przy wielu ekipach wybierz jedną ekipę.
+Kolejność w dniu można zmienić przeciąganiem (komputer) albo przyciskami góra/dół (telefon). „Zmień dzień” przenosi wizytę na inny dzień, „Usuń” zwraca ją do puli nieprzypisanych. Zlecenia bez współrzędnych lub niepotwierdzone (uwaga „nie jechać bez potwierdzenia”) nie mają aktywnego przycisku „Dodaj”, dopóki nie zostaną uzupełnione. Aplikacja nie zastępuje nieznanego dojazdu zerem ani fikcyjną trasą w linii prostej. Do jednego przeliczenia odległości obsługiwanych jest do 70 lokalizacji. Przy wielu ekipach wybierz jedną ekipę.
 
-Czasy są szacunkiem OSRM bez korków. Rzeczywisty czas zakończenia wizyty aktualizuje późniejsze godziny w tym samym dniu. Google Maps wyznacza bieżący dojazd osobno i nie zwraca swojego ETA do aplikacji. Używany profil to jazda samochodem; ograniczenia ciężarówek nie są modelowane.
+Czasy są szacunkiem OSRM bez bieżących korków. Google Maps wyznacza bieżący dojazd osobno podczas nawigacji i nie zwraca swojego ETA do aplikacji. Używany profil to jazda samochodem; ograniczenia ciężarówek nie są modelowane.
 
 ## Zapis i przekazywanie
 
@@ -66,7 +65,7 @@ Repozytorium zawiera workflow GitHub Pages. W Settings → Pages wybierz GitHub 
 
 ## Sprawdzenia
 
-`node --test tests/*.test.mjs` sprawdza importer, daty, duplikaty, ograniczenia dni, nieosiągalne punkty, optymalizację asymetrycznej macierzy, harmonogram i kopie danych. Opcjonalny test rzeczywistego Excela korzysta ze zmiennej `T38_EXCEL`; plik źródłowy nie jest częścią repozytorium. Żadne testy nie składają zleceń ani nie wysyłają wiadomości.
+`node --test tests/*.test.mjs` sprawdza importer, daty, duplikaty, ranking kandydatów wg dojazdu, podsumowanie trasy dnia i kopie danych. Opcjonalny test rzeczywistego Excela korzysta ze zmiennej `T38_EXCEL`; plik źródłowy nie jest częścią repozytorium. Żadne testy nie składają zleceń ani nie wysyłają wiadomości.
 
 ## Biblioteki i dane
 

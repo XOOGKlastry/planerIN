@@ -6,8 +6,8 @@
 4. Uruchom ikonę **PaczkoPlan** z ekranu telefonu.
 5. Wybierz **Importuj Excel** i plik z aplikacji Pliki.
 6. W Ustawieniach wpisz bazę — miejsce startu i codziennego powrotu.
-7. Sprawdź propozycje czasu pracy przy zadaniach i wymagane potwierdzenia wyjazdu.
-8. Naciśnij **Zaplanuj tydzień**. Przycisk **Nawiguj** otwiera Google Maps.
+7. Naciśnij **Policz odległości**, żeby zobaczyć podpowiedzi „co jest po drodze”.
+8. Na każdy dzień sam wybierz pierwszy przystanek, a potem kolejne z podpowiedzianej listy. Przycisk **Nawiguj** otwiera Google Maps.
 
 Nie ma ustawiania przerw, płatnego abonamentu, klucza API ani konta rozliczeniowego Google.
 

@@ -133,6 +133,26 @@ export function exactRoute(route,cost){
   if(!Number.isFinite(dp[size-1][last]+cost[route[last]][0]))return route.slice();
   let mask=size-1;const result=[];while(last>=0){result.unshift(route[last]);const prev=parent[mask][last];mask^=1<<last;last=prev;} return result;
 }
+// Insertion favours cheap detours into a day already in use over a fresh round trip, which can leave later
+// days completely empty even when work could be spread out. Move one unpinned visit per empty day, taken from
+// whichever busier day can spare it, so a work day is only left free when there is genuinely nothing to give it.
+function fillEmptyDays(routes,days,cost,capacity,visits) {
+  for(const day of days) {
+    if(routes[day].length)continue;
+    let best=null;
+    for(const donor of days) {
+      if(donor===day||routes[donor].length<=1)continue;
+      for(const index of routes[donor]) {
+        if(visits[index-1].lockedDay!==null)continue;
+        const standalone=routeCost([index],cost)+visits[index-1].duration*60;
+        if(standalone>capacity)continue;
+        if(!best||standalone<best.standalone)best={donor,index,standalone};
+      }
+    }
+    if(best){routes[best.donor]=exactRoute(routes[best.donor].filter(i=>i!==best.index),cost);routes[day]=[best.index];}
+  }
+  return routes;
+}
 export function planWeek(visits,cost,settings) {
   const capacity=(timeMinutes(settings.end)-timeMinutes(settings.start))*60;
   if(!Number.isFinite(capacity)||capacity<=0)throw new Error('Godzina końca musi być późniejsza od początku pracy.');
@@ -176,6 +196,7 @@ export function planWeek(visits,cost,settings) {
       } if(!changed)break;
     }
     for(const day of settings.days)routes[day]=exactRoute(routes[day],cost);
+    fillEmptyDays(routes,settings.days,cost,capacity,visits);
     const score=unassigned.reduce((s,u)=>s+(visits[u.index-1].priority?2:1)*1e9,0)+Object.values(routes).reduce((s,r)=>s+routeCost(r,cost),0);
     if(!best||score<best.score)best={routes,unassigned,score};
   }

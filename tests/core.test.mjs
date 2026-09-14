@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import {parseRows,mergeImport,removeImport,defaultState,makeVisits,monday,isoDate,routeCost,improveRoute,exactRoute,rankCandidates,routeSummary,googleMapsUrl,googleSearchUrl,bookingUrl,streetViewUrl,validateBackup,parseCoordinates,parseParcelWkt} from '../dist/core.js';
+import {parseRows,mergeImport,removeImport,defaultState,makeVisits,monday,isoDate,routeCost,improveRoute,exactRoute,rankCandidates,routeSummary,googleMapsUrl,googleSearchUrl,bookingUrl,streetViewUrl,googleRouteUrl,validateBackup,parseCoordinates,parseParcelWkt} from '../dist/core.js';
 const headers=['Data','Nazwa PM','Nazwa lokalizacji','Miasto','Zaplanowane prace','Podłoże','Zgłoszenie','Miejsce','Uwagi Global','Czas [min]'];
 const rows=[headers,['2026-09-14','TEST01M','Sklep Opole Testowa 1','Opole','Serwis','Opis A','Z1','','',60],['2026-09-14','TEST01M','Sklep Opole Testowa 1','Opole','Pomiary','Opis B','Z2','','',45],['2026-09-14','TEST02M','Sklep Opole Testowa 2','Opole','Pomiary','Opis C','','M2','nie jechać bez potwierdzenia','']];
 test('dates are calendar dates, week starts Monday',()=>{assert.equal(monday('2026-09-20'),'2026-09-14');assert.equal(monday('2026-09-14'),'2026-09-14');assert.equal(isoDate('14.09.2026'),'2026-09-14');assert.equal(isoDate('31.02.2026'),null);});
@@ -93,6 +93,17 @@ test('Google Maps, search and Street View URLs use coordinates and encode free t
   assert.match(bookingUrl({label:'Rynek 1',city:'Opole'}),/^https:\/\/www\.booking\.com\/searchresults\.pl\.html\?ss=/);
   assert.equal(streetViewUrl({lat:50.1,lng:18.2}),'https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=50.1,18.2');
   assert.equal(streetViewUrl({label:'no coords'}),null);
+});
+test('whole-route Google Maps link keeps stop order, ends at the last point, and stays within 9 waypoints',()=>{
+  const points=Array.from({length:12},(_,i)=>({lat:50+i/100,lng:18+i/100}));
+  const url=new URL(googleRouteUrl(points));
+  assert.equal(url.searchParams.get('destination'),'50.09,18.09');
+  const waypoints=url.searchParams.get('waypoints').split('|');
+  assert.equal(waypoints.length,9);
+  assert.equal(waypoints[0],'50,18');
+  assert.equal(url.searchParams.get('origin'),null,'origin is left to the phone\'s own location');
+  assert.equal(new URL(googleRouteUrl([{lat:50.1,lng:18.2}])).searchParams.get('waypoints'),null);
+  assert.equal(googleRouteUrl([{label:'no coords'}]),null);
 });
 test('backup validation rejects bad structure and job references, accepts a fresh state',()=>{
   assert.throws(()=>validateBackup({...defaultState(),jobs:[{id:'x'}]}));

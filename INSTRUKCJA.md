@@ -6,8 +6,8 @@
 4. Uruchom ikonę **PaczkoPlan** z ekranu telefonu.
 5. Wybierz **Importuj Excel** i plik z aplikacji Pliki.
 6. W Ustawieniach wpisz bazę — miejsce startu i codziennego powrotu.
-7. Naciśnij **Policz odległości**, żeby zobaczyć podpowiedzi „co jest po drodze” (domyślnie darmowy OSRM).
-8. Na każdy dzień sam wybierz pierwszy przystanek — z podpowiedzianej listy albo klikając pinezkę wprost na mapie — a potem kolejne w kolejności klikania/dodawania. Każdy dzień ma na mapie swój kolor (widać go też na kafelku dnia), więc od razu wiadomo, do którego dnia należy dana pinezka; kliknięcie pinezki innego dnia przenosi ją na dzień, który akurat oglądasz. Na górze ekranu, zawsze widoczny, jest przycisk **Optymalizuj trasę** — układa już dodane przystanki w najkrótszą kolejność (aktywny od 2 przystanków). Przy nagłówku dnia jest **Reset dnia** (usuwa wszystkie przystanki z dnia, po potwierdzeniu). Przycisk **Prowadź** otwiera Google Maps. Gdy dwa punkty w tygodniu dzieli mniej niż 20 minut jazdy, oba dostają czerwone ostrzeżenie z nazwą tego drugiego punktu (widoczne dopiero po policzeniu odległości).
+7. Naciśnij żółty przycisk **Policz odległości** w pasku dnia (darmowy OSRM) — pojawią się czasy dojazdu i podpowiedzi „co jest po drodze”.
+8. Wybierz dzień u góry. Trasa dnia to oś czasu: start → przystanki → **Następny przystanek** → powrót. Dokładaj kolejne punkty przyciskiem „+” (najbliższy jest wyróżniony) albo klikając pinezki na mapie; na telefonie przełączasz **Lista | Mapa**. Stuknięcie w przystanek rozwija jego akcje (szczegóły, miejsce pracy, notatka, inny dzień, kolejność, usunięcie). W przypiętym pasku dnia masz sumy (czas, kilometry, powrót), **Optymalizuj** (najkrótsza kolejność) i **Prowadź całą trasę** w Google Maps; okrągła strzałka przy przystanku prowadzi do jednego punktu. Czerwony znacznik oznacza punkt w odległości poniżej 20 minut jazdy od trasy (widoczny po policzeniu odległości).
 
 Nie ma ustawiania przerw. Tydzień obejmuje pięć dni roboczych (Pon–Pt) — soboty i niedzieli nie ma wśród kafelków dni. Bez płatności ani konta rozliczeniowego — trasy zawsze liczy darmowy OSRM.
 
@@ -15,7 +15,7 @@ Nie ma ustawiania przerw. Tydzień obejmuje pięć dni roboczych (Pon–Pt) — 
 
 ## Nocleg i składy kruszywa
 
-Przy ostatnim przystanku dnia jest przycisk „Nocleg tutaj zamiast powrotu” — zaznacz, jeśli ekipa zostaje na noc; pojawi się odnośnik do Booking.com, a kolejny dzień wystartuje z tego miejsca zamiast z bazy. Przy zleceniu i przy mapie dnia są przyciski do szukania składów kruszywa/kamienia — w pobliżu punktu albo po drodze całego dnia, przez Google Maps i OpenStreetMap.
+Na końcu trasy dnia, w wierszu „Powrót do bazy”, jest przycisk **Nocleg** (księżyc) — zaznacz, jeśli ekipa zostaje na noc; pojawi się odnośnik do Booking.com, a kolejny dzień wystartuje z tego miejsca zamiast z bazy. Składy kruszywa i kamienia znajdziesz w szczegółach zlecenia (w pobliżu punktu) i pod ikoną góry na pasku mapy (po drodze całego dnia), przez Google Maps i OpenStreetMap.
 
 ## Zobacz miejsce pracy i notatki
 

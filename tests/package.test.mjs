@@ -15,7 +15,13 @@ test('day-optimize and day-reset actions are wired up, reset asks for confirmati
 test('the work-map base layer picker offers all five requested sources, each with its own thumbnail',()=>{const app=fs.readFileSync(path.join(root,'app.js'),'utf8');for(const id of ['osm','esri','orto','google-hybrid','google'])assert.ok(app.includes(`id:'${id}'`),`missing base layer ${id}`);assert.match(app,/function baseLayerThumbUrl/);assert.match(app,/function makeBaseTileLayer/);});
 test('base layer picker sits above the map as plain HTML, not floating on top of it',()=>{const app=fs.readFileSync(path.join(root,'app.js'),'utf8');const workMapIdx=app.indexOf(`id="work-map"`),pickerIdx=app.indexOf('class="map-base-picker"');assert.ok(pickerIdx>=0&&pickerIdx<workMapIdx,'picker markup must come before the map canvas in the DOM');assert.doesNotMatch(app,/L\.control\(\{position:'topleft'\}\)/);});
 test('the auto-distribute module has been removed entirely',()=>{const app=fs.readFileSync(path.join(root,'app.js'),'utf8');const core=fs.readFileSync(path.join(root,'core.js'),'utf8');assert.doesNotMatch(app+core,/autoDistribute|auto-distribute|Zaproponuj rozkład/);});
-test('optimize-route is a primary, always-visible top action for the week view',()=>{const app=fs.readFileSync(path.join(root,'app.js'),'utf8');const topActionsIdx=app.indexOf("view==='week'?`<div class=\"top-actions\">");const topActionsBlock=app.slice(topActionsIdx,topActionsIdx+700);assert.match(topActionsBlock,/data-act="optimize-day"/);assert.match(topActionsBlock,/class="primary" data-act="optimize-day"/);});
+test('optimize-route is a primary button in the day bar, which stays pinned while scrolling the stops',()=>{
+  const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
+  const styles=fs.readFileSync(path.join(root,'styles.css'),'utf8');
+  const bar=app.slice(app.indexOf('function renderDayBar'),app.indexOf('function renderRoute'));
+  assert.match(bar,/class="primary optimize" data-act="optimize-day"/);
+  assert.match(styles,/\.daybar\{position:sticky;top:0/);
+});
 test('an entire import can be deleted, with confirmation, removing only its own jobs',()=>{const app=fs.readFileSync(path.join(root,'app.js'),'utf8');assert.match(app,/case 'delete-import':await deleteImport\(id\)/);const fn=app.slice(app.indexOf('async function deleteImport'),app.indexOf('async function deleteImport')+400);assert.match(fn,/confirm\(/);const core=fs.readFileSync(path.join(root,'core.js'),'utf8');assert.match(core,/export function removeImport/);});
 test('parcels (działki) can be toggled on the work map, identified by click via ULDK, with a distinct base layer for boundaries',()=>{
   const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
@@ -34,8 +40,8 @@ test('a visit under 20 minutes from another gets a very visible proximity warnin
   assert.ok(seconds&&Number(seconds[1])===1200,'threshold must be 20 minutes (1200s)');
   const stopFn=app.slice(app.indexOf('function renderStop'),app.indexOf('function renderCandidate'));
   const candidateFn=app.slice(app.indexOf('function renderCandidate'),app.indexOf('function renderAddSection'));
-  assert.match(stopFn,/near\?`<span class="tag red">/);
-  assert.match(candidateFn,/tag red/);
+  assert.match(stopFn,/near\?`<span class="flag red"/);
+  assert.match(candidateFn,/flag red/);
 });
 test('each day of the week has its own colour, used for the map route/pins and echoed on its tile',()=>{
   const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
@@ -75,4 +81,32 @@ test('"Zobacz miejsce pracy" is compact — one chip row for parcels+GESUT layer
   assert.doesNotMatch(app,/class="layer-toggles"/);
   assert.match(styles,/\.chip-row\{/);
   assert.match(styles,/\.icon-btn\{/);
+});
+test('the day is one timeline — start, legs, stops, next-stop suggestions, return — with stop actions folded until opened',()=>{
+  const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
+  const styles=fs.readFileSync(path.join(root,'styles.css'),'utf8');
+  const route=app.slice(app.indexOf('function renderRoute'),app.indexOf('function renderRouteEnd'));
+  assert.match(route,/\$\{startRow\}\$\{stops\}\$\{renderAddSection\(day\)\}\$\{end\}/);
+  assert.match(app,/case 'toggle-stop':setOpenStop\(id\)/);
+  assert.match(styles,/\.stop-actions\{display:none/);
+  assert.match(styles,/\.stop\.open \.stop-actions\{display:flex\}/);
+});
+test('phones and tablets switch between the list and the map instead of stacking them',()=>{
+  const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
+  const styles=fs.readFileSync(path.join(root,'styles.css'),'utf8');
+  assert.match(app,/case 'pane':\{pane=button\.dataset\.pane/);
+  const tablet=styles.slice(styles.indexOf('@media(max-width:850px)'),styles.indexOf('@media(max-width:650px)'));
+  assert.match(tablet,/\.work-area\[data-pane="list"\] \.map-panel,\.work-area\[data-pane="map"\] \.route-panel\{display:none\}/);
+});
+test('every icon-only button carries a spoken label',()=>{
+  const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
+  const tags=[...app.matchAll(/<(?:a|button) class="(?:tool|act icon-only|cand-add)[^"]*"[^>]*>/g)].map(m=>m[0]);
+  assert.ok(tags.length>=10,`expected many icon buttons, found ${tags.length}`);
+  for(const tag of tags)assert.match(tag,/aria-label="/,tag);
+});
+test('the day bar opens the whole remaining route in Google Maps',()=>{
+  const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
+  const bar=app.slice(app.indexOf('function renderDayBar'),app.indexOf('function renderRoute'));
+  assert.match(bar,/googleRouteUrl\(/);
+  assert.match(bar,/title="Prowadź całą trasę w Google Maps"/);
 });

@@ -168,6 +168,17 @@ export function googleMapsUrl(location,base) {
   if(base&&validCoords(base))params.set('origin',`${base.lat},${base.lng}`);
   return `https://www.google.com/maps/dir/?${params}`;
 }
+// The remaining stops as one Google Maps route from wherever the phone is now (origin omitted = device
+// location). Google allows at most 9 waypoints (only 3 in mobile browsers; the Maps app takes 9), so only
+// the first 10 points are kept — enough for the next stretch of the day.
+export function googleRouteUrl(points) {
+  const valid=points.filter(validCoords).slice(0,10);
+  if(!valid.length)return null;
+  const at=p=>`${p.lat},${p.lng}`;
+  const params=new URLSearchParams({api:'1',destination:at(valid.at(-1)),travelmode:'driving'});
+  if(valid.length>1)params.set('waypoints',valid.slice(0,-1).map(at).join('|'));
+  return `https://www.google.com/maps/dir/?${params}`;
+}
 export function streetViewUrl(location) {
   if(!validCoords(location))return null;
   return `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${location.lat},${location.lng}`;

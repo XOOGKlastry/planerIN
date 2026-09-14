@@ -1,5 +1,5 @@
 // Pure data and route functions. Coordinates are WGS84, costs in seconds/metres.
-export const VERSION = 2;
+export const VERSION = 3;
 export const DAY_NAMES = ['Poniedziałek','Wtorek','Środa','Czwartek','Piątek','Sobota','Niedziela'];
 export const JOB_TYPES = ['Pomiary','Serwis','Prace dodatkowe','Prace gwarancyjne','Montaż'];
 export const norm = value => String(value ?? '').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/ł/g,'l').replace(/Ł/g,'L').toLowerCase().replace(/\s+/g,' ').trim();
@@ -50,7 +50,7 @@ export function parseCoordinates(value) {
   const p={lat:+match[1],lng:+match[2]}; return validCoords(p) ? p : null;
 }
 export function defaultState() {
-  return {version:VERSION,jobs:[],locations:{},plans:{},imports:[],settings:{week:monday(today()),crew:'',base:null,days:[0,1,2,3,4]},updatedAt:null};
+  return {version:VERSION,jobs:[],locations:{},plans:{},imports:[],settings:{week:monday(today()),crew:'',base:null,googleApiKey:''},updatedAt:null};
 }
 export function parseRows(rows, {fileName='Import',sheetName='Arkusz',XLSX,defaultWeek=monday(today())}={}) {
   let headerIndex=rows.findIndex(r=>r.some(c=>['nazwa pm','paczkomat','kod paczkomatu','adres','nazwa lokalizacji'].includes(norm(c))));
@@ -106,7 +106,7 @@ export function makeVisits(jobs, locations) {
   return [...grouped.values()].map(v=>({...v,id:`v:${hash(v.jobs.map(j=>j.id).sort().join('|'))}`,blocked:v.jobs.some(j=>j.requiresConfirmation&&!j.confirmed),done:v.jobs.every(j=>j.status==='done')}));
 }
 export function routeCost(route,cost){let total=0,prev=0;for(const i of route){const leg=cost[prev]?.[i];if(!Number.isFinite(leg))return Infinity;total+=leg;prev=i;} const end=cost[prev]?.[0];return total+(Number.isFinite(end)?end:Infinity);}
-// Rank the remaining pool by travel time from the last chosen stop (0 = base), nearest first.
+// Rank the remaining pool by travel time from the last chosen stop (fromIndex; 0 = base), nearest first.
 // Unreachable candidates (no route data) sort last rather than being hidden, so nothing silently disappears.
 export function rankCandidates(fromIndex, poolIndices, cost) {
   return poolIndices.map(index=>{
@@ -118,9 +118,10 @@ export function rankCandidates(fromIndex, poolIndices, cost) {
     return a.from-b.from;
   });
 }
-// Travel time for a day built by hand: the leg into each stop, running total, and the trip back from the last one.
-export function routeSummary(routeIds, visits, cost) {
-  let prev=0,driving=0,hasMissing=false; const entries=[];
+// Travel time for a day built by hand: the leg into each stop, running total, and the trip back to base (index 0)
+// from the last one. startIndex lets a day begin somewhere other than base (an overnight stay the day before).
+export function routeSummary(routeIds, visits, cost, startIndex=0) {
+  let prev=startIndex,driving=0,hasMissing=false; const entries=[];
   const lookup=new Map(visits.map((v,i)=>[v.id,{visit:v,index:i+1}]));
   for(const id of routeIds) {
     const found=lookup.get(id); if(!found){hasMissing=true;continue;}
@@ -129,10 +130,28 @@ export function routeSummary(routeIds, visits, cost) {
     if(travel===null)hasMissing=true; else driving+=travel;
     entries.push({visit,travel}); prev=index;
   }
-  const backSeconds=routeIds.length?cost?.[prev]?.[0]:0;
-  const back=routeIds.length?(Number.isFinite(backSeconds)?backSeconds/60:null):0;
+  const backSeconds=cost?.[prev]?.[0];
+  const back=Number.isFinite(backSeconds)?backSeconds/60:null;
   if(back===null)hasMissing=true;
   return {entries,driving,back,hasMissing};
+}
+// One-shot suggestion: chain the remaining pool onto each day (nearest-next), starting a new day once it
+// hits the stop or drive-time cap. Existing stops on a day are kept and only extended, never reordered.
+export function autoDistribute(days, anchors, routes, poolIndices, cost, {maxStopsPerDay=6,maxDriveMinutes=180}={}) {
+  const result=Object.fromEntries(days.map(d=>[d,[...(routes[d]||[])]]));
+  const remaining=new Set(poolIndices);
+  for(const day of days) {
+    if(!remaining.size)break;
+    let last=result[day].length?result[day].at(-1):(anchors[day]??0);
+    let driveSeconds=0,count=result[day].length;
+    while(remaining.size&&count<maxStopsPerDay&&driveSeconds<maxDriveMinutes*60) {
+      let best=null;
+      for(const index of remaining){const leg=cost?.[last]?.[index];if(Number.isFinite(leg)&&(!best||leg<best.cost))best={index,cost:leg};}
+      if(!best)break;
+      result[day].push(best.index);remaining.delete(best.index);last=best.index;driveSeconds+=best.cost;count++;
+    }
+  }
+  return {routes:result,leftover:[...remaining]};
 }
 export function googleMapsUrl(location,base) {
   const destination=validCoords(location)?`${location.lat},${location.lng}`:[location.label,location.city,location.postal,'Polska'].filter(Boolean).join(', ');
@@ -140,17 +159,25 @@ export function googleMapsUrl(location,base) {
   if(base&&validCoords(base))params.set('origin',`${base.lat},${base.lng}`);
   return `https://www.google.com/maps/dir/?${params}`;
 }
+export function googleSearchUrl(query, near) {
+  const url=`https://www.google.com/maps/search/${encodeURIComponent(query)}`;
+  return near&&validCoords(near)?`${url}/@${near.lat},${near.lng},13z`:url;
+}
+export function bookingUrl(location) {
+  const query=[location.label,location.city].filter(Boolean).join(', ')||(validCoords(location)?`${location.lat},${location.lng}`:'');
+  return `https://www.booking.com/searchresults.pl.html?ss=${encodeURIComponent(query)}`;
+}
 export function validateBackup(data) {
   if(!data||data.version!==VERSION||!Array.isArray(data.jobs)||!data.locations||!data.settings||!data.plans)throw new Error('To nie jest plik planu PaczkoPlan.');
   if(data.jobs.length>3000)throw new Error('Plik ma zbyt wiele zleceń.');
   if(!isoDate(data.settings.week))throw new Error('Niepoprawne ustawienia planu.');
-  if(!Array.isArray(data.settings.days)||!data.settings.days.length||data.settings.days.some(d=>!Number.isInteger(d)||d<0||d>6))throw new Error('Niepoprawne dni pracy.');
   if(data.settings.base&&!validCoords(data.settings.base))throw new Error('Niepoprawne współrzędne bazy.');
   const jobIds=new Set();
   for(const job of data.jobs){if(!job.id||jobIds.has(job.id)||!data.locations[job.locationId]||!isoDate(job.week)||!['todo','doing','done'].includes(job.status))throw new Error('Niepoprawne zlecenie w kopii planu.');jobIds.add(job.id);}
   for(const p of Object.values(data.plans)){
     if(!p.routes||Object.entries(p.routes).some(([d,ids])=>!/^\d$/.test(d)||+d>6||!Array.isArray(ids)||ids.some(id=>typeof id!=='string')))throw new Error('Niepoprawna trasa w kopii planu.');
     const ids=Object.values(p.routes).flat();if(new Set(ids).size!==ids.length)throw new Error('Wizyta występuje w kilku dniach.');
+    if(p.overnight&&Object.entries(p.overnight).some(([d,v])=>!/^\d$/.test(d)||+d>6||typeof v!=='boolean'))throw new Error('Niepoprawny nocleg w kopii planu.');
     if(p.matrix){const n=p.matrix.visitIds?.length+1;if(!Number.isInteger(n)||n>71||!Array.isArray(p.matrix.durations)||p.matrix.durations.length!==n||p.matrix.durations.some(row=>!Array.isArray(row)||row.length!==n||row.some(v=>v!==null&&v!==Infinity&&(!Number.isFinite(v)||v<0))))throw new Error('Niepoprawne czasy przejazdu w kopii planu.');}
   }
   return data;

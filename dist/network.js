@@ -1,6 +1,6 @@
 import {norm,validCoords,haversine,hash} from './core.js';
 
-export const SERVICES={points:'https://api-shipx-pl.easypack24.net/v1/points/',geocoder:'https://nominatim.openstreetmap.org/search',router:'https://router.project-osrm.org'};
+export const SERVICES={points:'https://api-shipx-pl.easypack24.net/v1/points/',geocoder:'https://nominatim.openstreetmap.org/search',router:'https://router.project-osrm.org',overpass:'https://overpass-api.de/api/interpreter'};
 let queue=Promise.resolve(),lastRequest=0;
 // Public services are shared. No parallel bulk requests or autocomplete.
 export function request(url,{timeout=25000,...options}={}){
@@ -42,6 +42,53 @@ export async function fetchMatrix(base,visits){
   (data.sources||[]).forEach((p,i)=>{if(p.location){const distance=haversine(points[i],{lat:p.location[1],lng:p.location[0]});if(distance>400)snapped.push({index:i,distance:Math.round(distance)});}});
   if(snapped.length)throw new Error(`Punkt ${snapped[0].index===0?'startu':visits[snapped[0].index-1].location.code||visits[snapped[0].index-1].location.label} jest ${snapped[0].distance} m od drogi rozpoznanej przez silnik. Popraw pinezkę przy wjeździe.`);
   return {key:matrixKey(base,visits),durations:data.durations.map(r=>r.map(v=>Number.isFinite(v)&&v>=0?v:Infinity)),distances:data.distances??null,visitIds:visits.map(v=>v.id),provider:'OSRM',fetchedAt:new Date().toISOString()};
+}
+// Google Distance Matrix (paid beyond your account's free quota — you enabled billing yourself).
+// Loaded as the Maps JavaScript library so it runs from a static page with no server; the key stays
+// on this device (Settings), never in the repository. Capped at 25 points per call (Google's own
+// per-request limit for this classic API), so a week over that must use OSRM or a smaller crew/range.
+let googleLoading=null;
+function loadGoogleMaps(apiKey){
+  if(globalThis.google?.maps?.DistanceMatrixService)return Promise.resolve();
+  if(googleLoading)return googleLoading;
+  googleLoading=new Promise((resolve,reject)=>{
+    const script=document.createElement('script');
+    script.src=`https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}`;
+    script.onerror=()=>{googleLoading=null;reject(new Error('Nie udało się wczytać Google Maps. Sprawdź klucz API, jego ograniczenia i połączenie.'));};
+    script.onload=()=>globalThis.google?.maps?.DistanceMatrixService?resolve():(googleLoading=null,reject(new Error('Google Maps wczytane, ale bez usługi Distance Matrix. Sprawdź, czy API jest włączone w projekcie.')));
+    document.head.appendChild(script);
+  });
+  return googleLoading;
+}
+export function googleMatrixElementCount(pointCount){return pointCount*pointCount;}
+export async function fetchMatrixGoogle(base,visits,apiKey){
+  if(!apiKey)throw new Error('Wpisz klucz Google Maps API w Ustawieniach albo użyj darmowego OSRM.');
+  if(!validCoords(base))throw new Error('Najpierw ustaw miejsce startu.');
+  const points=[base,...visits.map(v=>v.location)];
+  if(points.length>25)throw new Error('Tryb Google obsługuje do 25 lokalizacji naraz (razem z bazą). Wybierz jedną ekipę, mniejszy tydzień albo policz OSRM.');
+  if(points.some(p=>!validCoords(p)))throw new Error('Nie wszystkie lokalizacje mają współrzędne.');
+  await loadGoogleMaps(apiKey);
+  const latlngs=points.map(p=>new google.maps.LatLng(p.lat,p.lng));
+  const service=new google.maps.DistanceMatrixService();
+  const response=await new Promise((resolve,reject)=>{
+    service.getDistanceMatrix({origins:latlngs,destinations:latlngs,travelMode:google.maps.TravelMode.DRIVING,unitSystem:google.maps.UnitSystem.METRIC},(result,status)=>{
+      status==='OK'&&result?resolve(result):reject(new Error(`Google Distance Matrix odpowiedziało: ${status}. Sprawdź klucz, limity i włączone API.`));
+    });
+  });
+  const durations=response.rows.map(row=>row.elements.map(el=>el.status==='OK'&&Number.isFinite(el.duration?.value)?el.duration.value:Infinity));
+  const distances=response.rows.map(row=>row.elements.map(el=>el.status==='OK'&&Number.isFinite(el.distance?.value)?el.distance.value:null));
+  return {key:`${matrixKey(base,visits)}:google`,durations,distances,visitIds:visits.map(v=>v.id),provider:'Google',fetchedAt:new Date().toISOString()};
+}
+// Building-materials / aggregate yards near a point or along a day's stops, via the free OSM Overpass API.
+// `center`+`radius` (metres) searches around one point; `bbox` searches a rectangle (a day's route span).
+export async function findMaterialYards({center,radius=8000,bbox}={}){
+  const area=center?`(around:${radius},${center.lat},${center.lng})`:bbox?`(${bbox.south},${bbox.west},${bbox.north},${bbox.east})`:null;
+  if(!area)throw new Error('Brak punktu lub obszaru do wyszukania.');
+  const tags=['shop=building_materials','landuse=quarry','shop=trade'];
+  const clauses=tags.flatMap(tag=>[`node["${tag.split('=')[0]}"="${tag.split('=')[1]}"]${area};`,`way["${tag.split('=')[0]}"="${tag.split('=')[1]}"]${area};`]).join('');
+  const query=`[out:json][timeout:25];(${clauses});out center 40;`;
+  const data=await request(SERVICES.overpass,{method:'POST',timeout:30000,headers:{'Content-Type':'application/x-www-form-urlencoded'},body:`data=${encodeURIComponent(query)}`});
+  return (data.elements||[]).map(el=>({id:`osm:${el.type}/${el.id}`,name:el.tags?.name||el.tags?.brand||'Skład bez nazwy',lat:el.lat??el.center?.lat,lng:el.lon??el.center?.lon,tags:el.tags||{},osmUrl:`https://www.openstreetmap.org/${el.type}/${el.id}`})).filter(p=>validCoords(p));
 }
 export async function fetchRoute(base,visits){
   if(!visits.length)return null;

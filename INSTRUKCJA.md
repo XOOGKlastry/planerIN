@@ -6,10 +6,14 @@
 4. Uruchom ikonę **PaczkoPlan** z ekranu telefonu.
 5. Wybierz **Importuj Excel** i plik z aplikacji Pliki.
 6. W Ustawieniach wpisz bazę — miejsce startu i codziennego powrotu.
-7. Naciśnij **Policz odległości**, żeby zobaczyć podpowiedzi „co jest po drodze”.
-8. Na każdy dzień sam wybierz pierwszy przystanek, a potem kolejne z podpowiedzianej listy. Przycisk **Nawiguj** otwiera Google Maps.
+7. Naciśnij **Policz odległości**, żeby zobaczyć podpowiedzi „co jest po drodze” (domyślnie darmowy OSRM).
+8. Na każdy dzień sam wybierz pierwszy przystanek, a potem kolejne z podpowiedzianej listy — albo naciśnij **Zaproponuj rozkład**, żeby od razu rozłożyć resztę zleceń, i popraw ręcznie. Przycisk **Prowadź** otwiera Google Maps.
 
-Nie ma ustawiania przerw, płatnego abonamentu, klucza API ani konta rozliczeniowego Google.
+Nie ma ustawiania przerw ani wyboru dni roboczych — tydzień to zawsze 7 dni. Domyślnie żadnych płatności ani konta rozliczeniowego Google — chyba że sam wpiszesz w Ustawieniach własny klucz Google Maps API (opcja opisana w README, wtedy Google nalicza opłaty powyżej Twojego darmowego limitu).
+
+## Nocleg i składy kruszywa
+
+Przy ostatnim przystanku dnia jest przycisk „Nocleg tutaj zamiast powrotu” — zaznacz, jeśli ekipa zostaje na noc; pojawi się odnośnik do Booking.com, a kolejny dzień wystartuje z tego miejsca zamiast z bazy. Przy zleceniu i przy mapie dnia są przyciski do szukania składów kruszywa/kamienia — w pobliżu punktu albo po drodze całego dnia, przez Google Maps i OpenStreetMap.
 
 ## Dla drugiego telefonu
 

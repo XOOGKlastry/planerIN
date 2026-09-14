@@ -14,7 +14,7 @@ const pegmanSvg='<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="tr
 // classes in styles.css; no meaning beyond telling the seven days apart at a glance.
 const DAY_COLORS=['#2f6fed','#16a34a','#d97706','#db2777','#7c3aed','#0891b2','#b91c1c'];
 const icon=name=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${icons[name]||icons.list}"/></svg>`;
-let state=defaultState(),view='week',selectedDay=0,busy=false,map=null,miniMap=null,toastTimer,search='',filter='all',selectedVisit=null,geoCandidates=[],geoTarget=null,importPreview=null,waitingWorker=null,deferredInstall=null,cancelGeo=false,saveError=null;
+let state=defaultState(),view='week',selectedDay=0,busy=false,map=null,miniMap=null,toastTimer,search='',filter='all',selectedVisit=null,geoCandidates=[],geoTarget=null,importPreview=null,waitingWorker=null,deferredInstall=null,cancelGeo=false,saveError=null,addSectionExpanded=false;
 const selectedJobs=()=>state.jobs.filter(j=>j.week===state.settings.week&&(!state.settings.crew||j.crew===state.settings.crew));
 const currentVisits=()=>makeVisits(selectedJobs(),state.locations);
 const planKey=()=>`${state.settings.week}|${state.settings.crew||'*'}`;
@@ -124,6 +124,10 @@ function renderCandidate(v,rank,best,fromLabel){
   const near=proximityWarning(v.id);if(near)info+=`<span class="tag red">${formatDuration(near.seconds/60)} od ${esc(locationTitle(near.visit.location))}</span>`;
   return `<article class="stop candidate"><div class="stop-number">${icon('plus')}</div><div class="stop-body"><div class="stop-heading"><h3>${esc(locationTitle(v.location))}</h3></div><div class="stop-address">${esc(v.location.label)}</div><div class="tags">${[...new Set(v.jobs.map(j=>j.type))].map(type=>`<span class="tag">${esc(type)}</span>`).join('')}${info}${v.blocked?'<span class="tag amber">Potwierdź wyjazd</span>':''}${!validCoords(v.location)?'<span class="tag amber">Brak lokalizacji</span>':''}</div>${v.location.note?`<div class="note">${esc(v.location.note)}</div>`:''}<div class="stop-footer">${validCoords(v.location)?`<a class="nav-link" href="${esc(googleMapsUrl(v.location))}" target="_blank" rel="noopener noreferrer">${icon('arrow')}Prowadź</a>`:''}<button class="small" data-act="visit" data-id="${esc(v.id)}">Szczegóły</button><button class="small primary" data-act="add-stop" data-id="${esc(v.id)}" ${disabled?'disabled':''}>${icon('plus')}Dodaj</button></div></div></article>`;
 }
+// Caps how many candidate cards render at once — with a big pool this section used to unfold into a
+// very long scroll of cards; showing the closest few plus a "Pokaż więcej" button keeps it short while
+// the ranking still puts the useful ones first.
+const CANDIDATE_LIMIT=5;
 function renderAddSection(day){
   const placed=placedVisitIds();
   const pool=currentVisits().filter(v=>!placed.has(v.id));
@@ -132,13 +136,22 @@ function renderAddSection(day){
   const {anchor}=dayCostContext(day);
   const fromLabel=hasStops?'od ostatniego punktu':(anchor===0?'od bazy':'od miejsca noclegu');
   const heading=hasStops?'Dodaj kolejny przystanek':'Wybierz pierwszy przystanek na ten dzień';
-  const ranked=nextStopCandidates(day);let body;
+  const ranked=nextStopCandidates(day);
+  let items,note='';
   if(ranked===null){
-    body=`${notice('Policz odległości, żeby zobaczyć co jest po drodze.','<button class="small" data-act="refresh-matrix">Policz odległości</button>','info')}${pool.map(v=>renderCandidate(v,null)).join('')}`;
+    note=notice('Policz odległości, żeby zobaczyć co jest po drodze.','<button class="small" data-act="refresh-matrix">Policz odległości</button>','info');
+    items=pool.map(v=>({visit:v,rank:null}));
   }else{
     const rankedIds=new Set(ranked.map(r=>r.visit.id)),missing=pool.filter(v=>!rankedIds.has(v.id));
-    body=`${ranked.map((r,i)=>renderCandidate(r.visit,r,i===0,fromLabel)).join('')}${missing.length?notice(`${missing.length} ${missing.length===1?'punkt czeka':'punktów czeka'} na lokalizację lub potwierdzenie wyjazdu.`,'','info'):''}${missing.map(v=>renderCandidate(v,null)).join('')}`;
+    items=[...ranked.map(r=>({visit:r.visit,rank:r})),...missing.map(v=>({visit:v,rank:null}))];
+    if(missing.length)note=notice(`${missing.length} ${missing.length===1?'punkt czeka':'punktów czeka'} na lokalizację lub potwierdzenie wyjazdu.`,'','info');
   }
+  const bestId=ranked?.[0]?.visit.id;
+  const visibleCount=addSectionExpanded?items.length:Math.min(CANDIDATE_LIMIT,items.length);
+  const shown=items.slice(0,visibleCount);
+  const more=items.length-visibleCount;
+  const toggle=more>0?`<button class="small" style="margin:14px 22px" data-act="show-more-candidates">${icon('down')}Pokaż więcej (${more})</button>`:addSectionExpanded&&items.length>CANDIDATE_LIMIT?`<button class="small quiet" style="margin:14px 22px" data-act="show-fewer-candidates">${icon('up')}Pokaż mniej</button>`:'';
+  const body=`${note}${shown.map(it=>renderCandidate(it.visit,it.rank,it.rank&&it.visit.id===bestId,fromLabel)).join('')}${toggle}`;
   return `<section class="panel" style="margin-top:22px"><div class="panel-title"><h2>${heading} <span class="muted">${pool.length}</span></h2></div>${body}</section>`;
 }
 function importDrop(){return `<div class="import-drop" id="import-drop" role="button" tabindex="0" data-act="choose-excel"><div class="import-symbol">${icon('upload')}</div><h2>Wczytaj tygodniowy Excel</h2><p>Wybierz plik z telefonu lub przeciągnij go tutaj na komputerze.</p><button class="primary" data-act="choose-excel">${icon('file')}Wybierz plik</button><div class="import-bottom">XLSX, XLS lub CSV · do 10 MB</div></div>`;}
@@ -313,12 +326,14 @@ async function clearNote(id){
 
 // Five base maps, each a real small crop of that provider centred on the point being shown — not a
 // generic icon — so the picker doubles as a preview of what each style actually looks like here.
+// `title` is the fuller description, shown as a tooltip — the on-screen label stays to one short word
+// so the whole row fits without wrapping onto a second line.
 const BASE_LAYERS=[
-  {id:'osm',label:'Ulice',sub:'OpenStreetMap'},
-  {id:'esri',label:'Satelita',sub:'Esri (szybsze)'},
-  {id:'orto',label:'Satelita',sub:'GUGiK (nowsze)'},
-  {id:'google-hybrid',label:'Google',sub:'hybryda'},
-  {id:'google',label:'Google',sub:'mapa'},
+  {id:'osm',label:'Ulice',title:'Ulice — OpenStreetMap'},
+  {id:'esri',label:'Esri',title:'Satelita — Esri (szybsze)'},
+  {id:'orto',label:'GUGiK',title:'Satelita — GUGiK (nowsze)'},
+  {id:'google-hybrid',label:'Hybryda',title:'Google — hybryda'},
+  {id:'google',label:'Google',title:'Google — mapa'},
 ];
 function tileXY(lat,lng,z){
   const n=2**z,x=Math.floor((lng+180)/360*n),latRad=lat*Math.PI/180;
@@ -354,10 +369,15 @@ let workMap=null,workBaseLayer=null,workBaseId='osm',workGesut=null,workGesutChe
 // once used to fire that many parallel tile requests at the same host, which starved the base map's
 // own tile requests and made it appear to fail.
 let workLoc=null;
+// Rebuilt as one compact block instead of a long vertical stack: a single-row base-map switcher sits
+// right above the map (still "above the map" per the earlier request, just no longer two rows of big
+// thumbnails), Street View is a small icon button next to that row instead of a full-width block ahead
+// of everything else, and działki/GESUT share one horizontally-scrolling chip row below the map — what
+// used to be ~10 lines of vertical chrome before you ever saw the map is now two short rows around it.
 function showWorkMap(id){
   const v=currentVisits().find(v=>v.id===id);if(!v||!validCoords(v.location))return toast('Najpierw ustal lokalizację punktu.');
   const loc=v.location,pano=streetViewUrl(loc);
-  showModal(`Miejsce pracy — ${locationTitle(loc)}`,`${pano?`<a class="nav-link streetview-link" href="${esc(pano)}" target="_blank" rel="noopener noreferrer" style="margin-bottom:14px">${pegmanSvg}Street View</a>`:''}<div class="map-base-picker"><div class="map-base-title">Mapa bazowa</div><div class="map-base-row">${BASE_LAYERS.map(b=>`<button type="button" class="map-base-thumb ${b.id===workBaseId?'active':''}" data-act="base-layer" data-base="${b.id}" style="background-image:url('${esc(baseLayerThumbUrl(b.id,loc.lat,loc.lng))}')"><span>${esc(b.label)}</span><small>${esc(b.sub)}</small></button>`).join('')}</div></div><div id="work-map" class="map-canvas" style="height:400px;border-radius:10px;margin-top:12px"></div><label class="parcel-toggle" id="work-parcels"><input type="checkbox" data-parcels="1"><span>${icon('layers')}Działki ewidencyjne — kliknij mapę po włączeniu, żeby zobaczyć numer</span></label><div class="layer-toggles" id="work-layers">${GESUT_LAYERS.map(l=>`<label><input type="checkbox" data-layer="${esc(l.name)}"><span>${esc(l.title)}</span></label>`).join('')}</div><p class="privacy-text" style="margin-top:14px">Warstwy uzbrojenia terenu (GESUT) są widoczne dopiero przy bardzo dużym przybliżeniu — podjedź blisko punktu. Granice działek i ich numery pochodzą z usług ewidencji gruntów (EGiB/ULDK), a linie mediów z Krajowej Integracji Uzbrojenia Terenu — obie z Głównego Urzędu Geodezji i Kartografii i mogą nie obejmować wszystkich powiatów. Podkłady Google to nieoficjalne kafelki bez klucza — mogą przestać działać bez zapowiedzi.</p>`,`<button data-act="close">Zamknij</button>`);
+  showModal(`Miejsce pracy — ${locationTitle(loc)}`,`<div class="map-base-picker"><div class="map-base-title-row"><span class="map-base-title">Mapa bazowa</span>${pano?`<a class="icon-btn streetview-link" href="${esc(pano)}" target="_blank" rel="noopener noreferrer" title="Street View" aria-label="Street View">${pegmanSvg}</a>`:''}</div><div class="map-base-row">${BASE_LAYERS.map(b=>`<button type="button" class="map-base-thumb ${b.id===workBaseId?'active':''}" data-act="base-layer" data-base="${b.id}" title="${esc(b.title)}" style="background-image:url('${esc(baseLayerThumbUrl(b.id,loc.lat,loc.lng))}')"><span>${esc(b.label)}</span></button>`).join('')}</div></div><div id="work-map" class="map-canvas" style="height:380px;border-radius:10px;margin-top:10px"></div><div class="chip-row" id="work-layers"><label class="chip" title="Kliknij mapę po włączeniu, żeby zobaczyć numer działki"><input type="checkbox" data-parcels="1"><span>${icon('layers')}Działki</span></label>${GESUT_LAYERS.map(l=>`<label class="chip"><input type="checkbox" data-layer="${esc(l.name)}"><span>${esc(l.title)}</span></label>`).join('')}</div><p class="privacy-text" style="margin-top:10px">Działki i sieci uzbrojenia (GESUT) — dane GUGiK, widoczne przy dużym przybliżeniu, mogą nie obejmować wszystkich powiatów. Podkłady Google to nieoficjalne kafelki bez klucza.</p>`,`<button data-act="close">Zamknij</button>`);
   drawWorkMap(loc);
 }
 function drawWorkMap(loc){
@@ -456,7 +476,9 @@ document.addEventListener('click',async event=>{
     case 'confirm-import':await confirmImport();break;
     case 'resolve-all':await resolveAll();break;
     case 'cancel-geo':cancelGeo=true;button.disabled=true;button.textContent='Kończę bieżące zapytanie…';break;
-    case 'day':selectedDay=Number(button.dataset.day);render();loadDayRoute();break;
+    case 'day':selectedDay=Number(button.dataset.day);addSectionExpanded=false;render();loadDayRoute();break;
+    case 'show-more-candidates':addSectionExpanded=true;render();break;
+    case 'show-fewer-candidates':addSectionExpanded=false;render();break;
     case 'week-shift':state.settings.week=addDays(state.settings.week,Number(button.dataset.offset));state.settings.crew='';await save();break;
     case 'refresh-matrix':await refreshMatrix();break;
     case 'optimize-day':await optimizeDayOrder(selectedDay);break;

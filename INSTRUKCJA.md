@@ -19,7 +19,7 @@ Przy ostatnim przystanku dnia jest przycisk „Nocleg tutaj zamiast powrotu” �
 
 ## Zobacz miejsce pracy i notatki
 
-Przy każdym przystanku jest przycisk „Zobacz miejsce pracy” — mapa z wyborem podkładu nad samą mapą (Ulice, dwa warianty satelitarne — szybszy Esri i nowszy GUGiK, oraz Google i Google hybryda), przełącznikiem działek ewidencyjnych i sieciami uzbrojenia terenu (prąd, gaz, wodociąg, kanalizacja i inne, z rejestru GESUT) plus pomarańczowy przycisk Street View. Zamiast przycisku „Start” jest „Dodaj notatkę” — notatka od razu pokazuje się przy tym punkcie na liście.
+Przy każdym przystanku jest przycisk „Zobacz miejsce pracy”. Mapa pokazuje się od razu, tuż pod jednym rzędem podkładów (Ulice, dwa warianty satelitarne — szybszy Esri i nowszy GUGiK, oraz Google i Google hybryda) z pomarańczowym okrągłym przyciskiem Street View obok. Pod mapą jest przewijany w poziomie rząd „działki” + sieci uzbrojenia terenu (prąd, gaz, wodociąg, kanalizacja i inne, z rejestru GESUT) — jedna wąska belka zamiast całej siatki checkboxów. Zamiast przycisku „Start” jest „Dodaj notatkę” — notatka od razu pokazuje się przy tym punkcie na liście.
 
 Po włączeniu działek kursor na mapie zmienia się, żeby było widać, że można kliknąć — kliknięcie podświetla na żółto działkę pod tym punktem i pokazuje jej numer w dymku.
 

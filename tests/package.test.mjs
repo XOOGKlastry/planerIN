@@ -57,3 +57,22 @@ test('only the five weekdays are plannable — no Saturday/Sunday tab, and nothi
   assert.match(app,/function placedVisitIds\(\)\{return new Set\(Object\.entries\(currentPlan\(\)\?\.routes\|\|\{\}\)\.filter\(\(\[d\]\)=>ALL_DAYS\.includes\(Number\(d\)\)\)/);
   assert.match(app,/ALL_DAYS\.map\(i=>`<option value="\$\{i\}"/,'move-visit dropdown must only offer weekdays');
 });
+test('the "add a stop" candidate list caps at a handful of cards with a show-more toggle, instead of unfolding the whole pool',()=>{
+  const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
+  assert.match(app,/const CANDIDATE_LIMIT=5/);
+  assert.match(app,/case 'show-more-candidates':addSectionExpanded=true/);
+  assert.match(app,/case 'show-fewer-candidates':addSectionExpanded=false/);
+  const fn=app.slice(app.indexOf('function renderAddSection'),app.indexOf('function importDrop'));
+  assert.match(fn,/Math\.min\(CANDIDATE_LIMIT,items\.length\)/);
+  assert.match(fn,/data-act="show-more-candidates"/);
+});
+test('"Zobacz miejsce pracy" is compact — one chip row for parcels+GESUT layers (not a multi-row checkbox grid), Street View as a small icon button',()=>{
+  const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
+  const styles=fs.readFileSync(path.join(root,'styles.css'),'utf8');
+  const fn=app.slice(app.indexOf('function showWorkMap'),app.indexOf('function drawWorkMap'));
+  assert.match(fn,/class="chip-row" id="work-layers"/);
+  assert.match(fn,/class="icon-btn streetview-link"/);
+  assert.doesNotMatch(app,/class="layer-toggles"/);
+  assert.match(styles,/\.chip-row\{/);
+  assert.match(styles,/\.icon-btn\{/);
+});

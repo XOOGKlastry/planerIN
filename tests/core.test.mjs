@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import {parseRows,mergeImport,defaultState,makeVisits,monday,isoDate,routeCost,improveRoute,exactRoute,rankCandidates,routeSummary,autoDistribute,googleMapsUrl,googleSearchUrl,bookingUrl,streetViewUrl,validateBackup,parseCoordinates} from '../dist/core.js';
+import {parseRows,mergeImport,removeImport,defaultState,makeVisits,monday,isoDate,routeCost,improveRoute,exactRoute,rankCandidates,routeSummary,googleMapsUrl,googleSearchUrl,bookingUrl,streetViewUrl,validateBackup,parseCoordinates} from '../dist/core.js';
 const headers=['Data','Nazwa PM','Nazwa lokalizacji','Miasto','Zaplanowane prace','Podłoże','Zgłoszenie','Miejsce','Uwagi Global','Czas [min]'];
 const rows=[headers,['2026-09-14','TEST01M','Sklep Opole Testowa 1','Opole','Serwis','Opis A','Z1','','',60],['2026-09-14','TEST01M','Sklep Opole Testowa 1','Opole','Pomiary','Opis B','Z2','','',45],['2026-09-14','TEST02M','Sklep Opole Testowa 2','Opole','Pomiary','Opis C','','M2','nie jechać bez potwierdzenia','']];
 test('dates are calendar dates, week starts Monday',()=>{assert.equal(monday('2026-09-20'),'2026-09-14');assert.equal(monday('2026-09-14'),'2026-09-14');assert.equal(isoDate('14.09.2026'),'2026-09-14');assert.equal(isoDate('31.02.2026'),null);});
@@ -66,19 +66,24 @@ test('an empty day starting at base has no driving and no missing-data flag',()=
   const result=routeSummary([],visits(2),matrix(2));
   assert.equal(result.driving,0);assert.equal(result.back,0);assert.equal(result.hasMissing,false);
 });
-test('autoDistribute chains the pool onto each day nearest-next, capped by stops or drive time, keeping existing stops',()=>{
-  const cost=matrix(6);
-  const {routes,leftover}=autoDistribute([0,1,2],{0:0,1:0,2:0},{},[1,2,3,4,5,6],cost,{maxStopsPerDay:2,maxDriveMinutes:180});
-  assert.equal(leftover.length,0);
-  assert.equal(routes[0].length,2);assert.equal(routes[1].length,2);assert.equal(routes[2].length,2);
-  const all=[...routes[0],...routes[1],...routes[2]];
-  assert.equal(new Set(all).size,6);
+test('merged jobs are tagged with the import digest that brought them in',()=>{
+  const parsed=parseRows(rows);
+  const state=mergeImport(defaultState(),parsed,'digest-1');
+  assert.ok(state.jobs.every(j=>j.importDigest==='digest-1'));
 });
-test('autoDistribute never overwrites a stop already placed by hand',()=>{
-  const cost=matrix(3);
-  const {routes}=autoDistribute([0,1],{0:0,1:0},{0:[2]},[1,3],cost,{maxStopsPerDay:5,maxDriveMinutes:180});
-  assert.deepEqual(routes[0][0],2);
-  assert.ok(routes[0].includes(2));
+test('removeImport deletes only that import\'s jobs, drops now-unused locations, keeps the rest',()=>{
+  const rowsB=[headers,['2026-09-14','OTHER1M','Inny sklep','Opole','Serwis','','','','','']];
+  let state=mergeImport(defaultState(),parseRows(rows),'digest-1');
+  state=mergeImport(state,parseRows(rowsB),'digest-2');
+  state.imports.push({name:'a.xlsx',digest:'digest-1',count:3,at:new Date().toISOString()},{name:'b.xlsx',digest:'digest-2',count:1,at:new Date().toISOString()});
+  const before=state.jobs.length;
+  state=removeImport(state,'digest-1');
+  assert.equal(state.jobs.length,before-3);
+  assert.ok(state.jobs.every(j=>j.importDigest==='digest-2'));
+  assert.ok(!state.locations['pm:TEST01M']);
+  assert.ok(state.locations['pm:OTHER1M']);
+  assert.ok(!state.imports.some(i=>i.digest==='digest-1'));
+  assert.ok(state.imports.some(i=>i.digest==='digest-2'));
 });
 test('Google Maps, search and Street View URLs use coordinates and encode free text',()=>{
   assert.equal(new URL(googleMapsUrl({lat:50.1,lng:18.2})).searchParams.get('destination'),'50.1,18.2');

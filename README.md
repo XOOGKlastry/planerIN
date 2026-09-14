@@ -8,7 +8,7 @@ Aplikacja PWA dla ekipy montującej i serwisującej paczkomaty. Działa na iPhon
 2. Udostępnij → Do ekranu początkowego → Otwórz jako aplikację www → Dodaj.
 3. Uruchom ikonę PaczkoPlan. Wczytaj Excel z aplikacji Pliki.
 4. W Ustawieniach wybierz miejsce startu/powrotu. Tydzień pokazuje wszystkie 7 dni — nie ma wyboru „dni roboczych”.
-5. Naciśnij „Policz odległości”. Na każdy dzień sam wybierz pierwszy przystanek, a potem kolejne z podpowiadanej listy „co jest po drodze”, albo naciśnij „Zaproponuj rozkład”, żeby od razu rozłożyć resztę zleceń na dni (nadal możesz to poprawić ręcznie).
+5. Naciśnij „Policz odległości”. Na każdy dzień sam wybierz pierwszy przystanek — z podpowiadanej listy „co jest po drodze” albo bezpośrednio klikając pinezkę na mapie — a potem kolejne w takiej kolejności, w jakiej je dodajesz. Gdy wszystkie są już na dniu, naciśnij „Optymalizuj trasę” (zawsze widoczne na górze), żeby poprawić kolejność na najkrótszą.
 
 Safari i PWA mogą mieć oddzielny zapis. Jeśli zaczynasz w Safari, zapisz kopię planu i wczytaj ją po instalacji. Plik ZIP zawiera aplikację do hostowania; na iPhonie aplikację instaluje się z adresu HTTPS, a nie otwierając HTML z ZIP.
 
@@ -22,16 +22,19 @@ Importer rozpoznaje nagłówki, niezależnie od ich kolejności. Obsługuje XLSX
 - Dwie różne prace przy tym samym punkcie są dwoma zleceniami i mogą być jedną wizytą (jeden dojazd).
 - Uwagi „nie jechać bez potwierdzenia” wymagają zaznaczenia potwierdzenia w szczegółach. Oryginalny tekst pozostaje widoczny.
 - Ponowny import tego samego pliku nie dubluje zleceń. Zachowuje status i przypisany dzień. Identyfikacja wykorzystuje tydzień, ekipę, punkt i identyfikator zgłoszenia lub miejsca oraz typ pracy. Bez identyfikatora zgłoszenia istotnie zmieniony opis może zostać rozpoznany jako nowe zadanie — sprawdź podsumowanie importu.
+- Każdy wczytany plik zostaje w liście „Ostatnie importy” z przyciskiem usunięcia — kasuje wszystkie zlecenia z tego konkretnego importu (i lokalizacje, których nic już nie używa), po potwierdzeniu. Zlecenia z innych importów zostają nietknięte.
 
 ## Planowanie
 
-Nie ma automatycznego układania całego tygodnia ani szacowania czasu pracy — to Ty decydujesz o kolejności i podziale na dni. Tydzień to zawsze 7 dni (Pon–Nie); nie ma osobnego wyboru dni roboczych. Dla wybranego dnia aplikacja pokazuje pozostałe zlecenia posortowane według czasu dojazdu od ostatnio dodanego przystanku (lub od bazy / miejsca noclegu, jeśli dzień jest jeszcze pusty) — najbliższy jest oznaczony „Najbliżej”. Wybierasz, klikając „Dodaj”; podpowiedź to sugestia, nie wymóg.
+Nie ma automatycznego układania całego tygodnia ani szacowania czasu pracy — to Ty decydujesz o kolejności i podziale na dni, w całości ręcznie. Tydzień to zawsze 7 dni (Pon–Nie); nie ma osobnego wyboru dni roboczych. Dla wybranego dnia aplikacja pokazuje pozostałe zlecenia posortowane według czasu dojazdu od ostatnio dodanego przystanku (lub od bazy / miejsca noclegu, jeśli dzień jest jeszcze pusty) — najbliższy jest oznaczony „Najbliżej”. Wybierasz, klikając „Dodaj” na liście.
 
-„Zaproponuj rozkład” to jednorazowa propozycja: dokłada pozostałe, nieprzypisane zlecenia do dni najbliższym-sąsiadem (licząc od ostatniego punktu danego dnia lub od bazy), zaczynając nowy dzień po ok. 6 przystankach lub 3 godzinach jazdy. Nigdy nie rusza tego, co już ręcznie ułożyłeś — tylko uzupełnia puste miejsca. Traktuj to jako punkt startowy do poprawienia, nie ostateczny plan.
+**Mapa dnia pokazuje wszystkie punkty na raz** — te już dodane do dnia jako ponumerowane pinezki, a pozostałe (jeszcze nieprzypisane) jako pinezki z „+”. Kliknięcie pinezki „+” dodaje ją jako kolejny przystanek — dokładnie to samo, co przycisk „Dodaj” na liście, tylko wprost na mapie. Kolejność, w jakiej klikasz, jest kolejnością trasy.
+
+**„Optymalizuj trasę”** jest zawsze widoczne na górze ekranu (obok „Policz odległości”) — układa już dodane przystanki bieżącego dnia w najkrótszą trasę od bazy (lub miejsca noclegu) przez wszystkie z nich i z powrotem, dokładnym algorytmem dla typowej liczby przystanków dziennie. Nie dodaje ani nie usuwa niczego, tylko zmienia kolejność; aktywne dopiero od 2 przystanków.
 
 Przy każdym kandydacie widać też czas powrotu do bazy, gdyby to on był ostatnim przystankiem tego dnia — pozwala to uniknąć sytuacji, w której dzień kończy się daleko od bazy z długim powrotem. Podsumowanie dnia pokazuje łączny czas jazdy między przystankami i czas powrotu z ostatniego punktu; powrót dłuższy niż godzinę jest wyróżniony.
 
-Kolejność w dniu można zmienić przeciąganiem (komputer) albo przyciskami góra/dół (telefon), albo przyciskiem **„Optymalizuj kolejność”** przy nagłówku dnia — układa już dodane przystanki w najkrótszą trasę od bazy (lub miejsca noclegu) przez wszystkie z nich i z powrotem, dokładnym algorytmem dla typowej liczby przystanków dziennie. Nie dodaje ani nie usuwa niczego, tylko zmienia kolejność. **„Reset dnia”** usuwa wszystkie przystanki z bieżącego dnia naraz (po potwierdzeniu) — wracają do puli nieprzypisanych. „Zmień dzień” przenosi jedną wizytę na inny dzień, „Usuń” zwraca jedną wizytę do puli. Zlecenia bez współrzędnych lub niepotwierdzone (uwaga „nie jechać bez potwierdzenia”) nie mają aktywnego przycisku „Dodaj”, dopóki nie zostaną uzupełnione. Aplikacja nie zastępuje nieznanego dojazdu zerem ani fikcyjną trasą w linii prostej. Przy wielu ekipach wybierz jedną ekipę.
+Kolejność w dniu można też zmienić przeciąganiem (komputer) albo przyciskami góra/dół (telefon). **„Reset dnia”** usuwa wszystkie przystanki z bieżącego dnia naraz (po potwierdzeniu) — wracają do puli nieprzypisanych. „Zmień dzień” przenosi jedną wizytę na inny dzień, „Usuń” zwraca jedną wizytę do puli. Zlecenia bez współrzędnych lub niepotwierdzone (uwaga „nie jechać bez potwierdzenia”) nie mają aktywnego przycisku „Dodaj” ani nie da się ich dodać z mapy, dopóki nie zostaną uzupełnione. Aplikacja nie zastępuje nieznanego dojazdu zerem ani fikcyjną trasą w linii prostej. Przy wielu ekipach wybierz jedną ekipę.
 
 Czasy są szacunkiem darmowego OSRM bez bieżących korków, do 70 lokalizacji naraz. Google Maps wyznacza bieżący dojazd osobno podczas nawigacji i nie zwraca swojego ETA do aplikacji. Używany profil to jazda samochodem; ograniczenia ciężarówek nie są modelowane.
 
@@ -49,7 +52,7 @@ Przy szczegółach zlecenia jest przycisk „Składy kruszywa w pobliżu” (szu
 
 Przy każdym przystanku i w szczegółach zlecenia jest przycisk „Zobacz miejsce pracy”: mapa danego punktu z wyborem podkładu i nakładek.
 
-**Mapa bazowa** — kontrolka w lewym górnym rogu mapy, pięć podkładów do wyboru (dokładnie jeden naraz), każdy jako miniaturka będąca prawdziwym wycinkiem tego podkładu w tym miejscu, nie generyczną ikoną:
+**Mapa bazowa** — pasek nad samą mapą, pięć podkładów do wyboru (dokładnie jeden naraz), każdy jako miniaturka będąca prawdziwym wycinkiem tego podkładu w tym miejscu, nie generyczną ikoną:
 - **Ulice** — OpenStreetMap (domyślny).
 - **Satelita (szybsze)** — Esri World Imagery, publiczny serwis, zwykle szybciej odpowiada niż GUGiK.
 - **Satelita (nowsze)** — ortofotomapa Głównego Urzędu Geodezji i Kartografii (usługa WMS ORTO), często bardziej aktualna dla Polski niż globalne serwisy.
@@ -57,7 +60,7 @@ Przy każdym przystanku i w szczegółach zlecenia jest przycisk „Zobacz miejs
 
 **Sieci uzbrojenia terenu (GESUT)** — osobne przełączniki (checkboxy) pod mapą dla sieci wodociągowej, kanalizacyjnej, elektroenergetycznej, gazowej, ciepłowniczej, telekomunikacyjnej, specjalnej, niezidentyfikowanej i urządzeń, z krajowej usługi integracyjnej KIUT prowadzonej przez GUGiK. Zaznaczone sieci są pobierane jednym zapytaniem (WMS pozwala podać kilka warstw naraz), więc włączenie wszystkich naraz nie zalewa przeglądarki równoległymi żądaniami i nie zakłóca wczytywania mapy bazowej. Te warstwy są widoczne dopiero przy bardzo dużym przybliżeniu (blisko adresu, nie widoku miasta) i mogą nie obejmować wszystkich powiatów — dane pochodzą od 385 różnych podmiotów prowadzących rejestr.
 
-**Street View** — zwykły odnośnik do panoramy Google Maps w danym punkcie, bez klucza API.
+**Street View** — pomarańczowy przycisk z ikoną ludzika (jak Google „pegman”), żeby był od razu widoczny; zwykły odnośnik do panoramy Google Maps w danym punkcie, bez klucza API.
 
 Wszystkie te usługi są bezpłatne i nie wymagają konta ani klucza; podkłady Google są dodatkowo nieoficjalne (patrz wyżej).
 
@@ -103,7 +106,7 @@ Repozytorium zawiera workflow GitHub Pages. W Settings → Pages wybierz GitHub 
 
 ## Sprawdzenia
 
-`node --test tests/*.test.mjs` sprawdza importer, daty, duplikaty, ranking kandydatów wg dojazdu, podsumowanie trasy dnia (w tym nocleg jako inny punkt startu), auto-rozkład, optymalizację kolejności (dokładny algorytm zgadza się z przeglądem zupełnym, honoruje nietypowy punkt startu, nigdy nie zmyśla trasy tam, gdzie jej brak), reset dnia z potwierdzeniem, pięć podkładów mapy bazowej, adresy URL (Google Maps/wyszukiwanie/Street View/Booking.com), kopie danych oraz że tylko darmowy OSRM liczy trasy (bez Google Distance Matrix czy zaszytego klucza). Opcjonalny test rzeczywistego Excela korzysta ze zmiennej `T38_EXCEL`; plik źródłowy nie jest częścią repozytorium. Żadne testy nie składają zleceń, nie wysyłają wiadomości ani nie wołają zewnętrznych usług na żywo.
+`node --test tests/*.test.mjs` sprawdza importer, usuwanie importu (kasuje tylko swoje zlecenia i nieużywane już lokalizacje), daty, duplikaty, ranking kandydatów wg dojazdu, podsumowanie trasy dnia (w tym nocleg jako inny punkt startu), optymalizację kolejności (dokładny algorytm zgadza się z przeglądem zupełnym, honoruje nietypowy punkt startu, nigdy nie zmyśla trasy tam, gdzie jej brak), że moduł auto-rozkładu został całkowicie usunięty, reset dnia z potwierdzeniem, pięć podkładów mapy bazowej nad mapą (nie jako kontrolka Leaflet), przycisk optymalizacji jako zawsze widoczny element górnego paska, adresy URL (Google Maps/wyszukiwanie/Street View/Booking.com), kopie danych oraz że tylko darmowy OSRM liczy trasy (bez Google Distance Matrix czy zaszytego klucza). Opcjonalny test rzeczywistego Excela korzysta ze zmiennej `T38_EXCEL`; plik źródłowy nie jest częścią repozytorium. Żadne testy nie składają zleceń, nie wysyłają wiadomości ani nie wołają zewnętrznych usług na żywo.
 
 ## Biblioteki i dane
 

@@ -89,12 +89,21 @@ export function parseRows(rows, {fileName='Import',sheetName='Arkusz',XLSX,defau
   }
   return {jobs,locations,issues,nonempty,duplicates};
 }
-export function mergeImport(state, parsed) {
+export function mergeImport(state, parsed, importDigest=null) {
   const byId=new Map(state.jobs.map(j=>[j.sourceKey||j.id,j])); let added=0,updated=0;
-  for(const job of parsed.jobs){const old=byId.get(job.sourceKey); if(old){updated++; byId.set(job.sourceKey,{...old,...job,id:old.id,status:old.status,confirmed:old.confirmed,startedAt:old.startedAt,finishedAt:old.finishedAt});}else{added++;byId.set(job.sourceKey,job);}}
+  for(const job of parsed.jobs){const old=byId.get(job.sourceKey),tagged={...job,importDigest}; if(old){updated++; byId.set(job.sourceKey,{...old,...tagged,id:old.id,status:old.status,confirmed:old.confirmed,startedAt:old.startedAt,finishedAt:old.finishedAt});}else{added++;byId.set(job.sourceKey,tagged);}}
   const locations={...state.locations};
   for(const [id,loc] of Object.entries(parsed.locations)){const old=locations[id]; locations[id]=old?{...old,...loc,lat:old.lat??loc.lat,lng:old.lng??loc.lng,geoStatus:old.geoStatus==='verified'?'verified':loc.geoStatus,geoSource:old.geoSource??loc.geoSource}:loc;}
   return {...state,jobs:[...byId.values()],locations,importResult:{added,updated}};
+}
+// Removes every job tagged with this import's digest, then drops any locations nothing references anymore.
+// A route can be left pointing at a visit id that no longer exists — dayRoute() already filters those
+// out silently (the same as it does for any other stale reference), so nothing else needs to change.
+export function removeImport(state, digest) {
+  const jobs=state.jobs.filter(j=>j.importDigest!==digest);
+  const usedLocations=new Set(jobs.map(j=>j.locationId));
+  const locations=Object.fromEntries(Object.entries(state.locations).filter(([id])=>usedLocations.has(id)));
+  return {...state,jobs,locations,imports:state.imports.filter(i=>i.digest!==digest)};
 }
 export function makeVisits(jobs, locations) {
   const grouped=new Map();
@@ -152,24 +161,6 @@ export function routeSummary(routeIds, visits, cost, startIndex=0) {
   const back=Number.isFinite(backSeconds)?backSeconds/60:null;
   if(back===null)hasMissing=true;
   return {entries,driving,back,hasMissing};
-}
-// One-shot suggestion: chain the remaining pool onto each day (nearest-next), starting a new day once it
-// hits the stop or drive-time cap. Existing stops on a day are kept and only extended, never reordered.
-export function autoDistribute(days, anchors, routes, poolIndices, cost, {maxStopsPerDay=6,maxDriveMinutes=180}={}) {
-  const result=Object.fromEntries(days.map(d=>[d,[...(routes[d]||[])]]));
-  const remaining=new Set(poolIndices);
-  for(const day of days) {
-    if(!remaining.size)break;
-    let last=result[day].length?result[day].at(-1):(anchors[day]??0);
-    let driveSeconds=0,count=result[day].length;
-    while(remaining.size&&count<maxStopsPerDay&&driveSeconds<maxDriveMinutes*60) {
-      let best=null;
-      for(const index of remaining){const leg=cost?.[last]?.[index];if(Number.isFinite(leg)&&(!best||leg<best.cost))best={index,cost:leg};}
-      if(!best)break;
-      result[day].push(best.index);remaining.delete(best.index);last=best.index;driveSeconds+=best.cost;count++;
-    }
-  }
-  return {routes:result,leftover:[...remaining]};
 }
 export function googleMapsUrl(location,base) {
   const destination=validCoords(location)?`${location.lat},${location.lng}`:[location.label,location.city,location.postal,'Polska'].filter(Boolean).join(', ');

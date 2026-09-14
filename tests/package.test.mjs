@@ -27,11 +27,11 @@ test('parcels (działki) can be toggled on the work map, identified by click via
   assert.match(network,/export async function findParcelAt/);
   assert.match(core,/export function parseParcelWkt/);
 });
-test('a visit under 10 minutes from another gets a very visible proximity warning, in both the day list and the candidate list',()=>{
+test('a visit under 20 minutes from another gets a very visible proximity warning, in both the day list and the candidate list',()=>{
   const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
   assert.match(app,/function proximityWarning/);
   const seconds=app.match(/return best&&best\.seconds<(\d+)\?best:null/);
-  assert.ok(seconds&&Number(seconds[1])===600,'threshold must be 10 minutes (600s)');
+  assert.ok(seconds&&Number(seconds[1])===1200,'threshold must be 20 minutes (1200s)');
   const stopFn=app.slice(app.indexOf('function renderStop'),app.indexOf('function renderCandidate'));
   const candidateFn=app.slice(app.indexOf('function renderCandidate'),app.indexOf('function renderAddSection'));
   assert.match(stopFn,/near\?`<span class="tag red">/);

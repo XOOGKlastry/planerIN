@@ -61,7 +61,7 @@ function nextStopCandidates(day){
   const lastId=route.at(-1)?.id,fromIndex=lastId?vs.findIndex(v=>v.id===lastId)+1:anchor;
   return rankCandidates(fromIndex,poolIndices,cost).map(r=>({...r,visit:vs[r.index-1]}));
 }
-// Flags a visit that's suspiciously close (under 10 minutes' drive) to another one anywhere in the
+// Flags a visit that's suspiciously close (under 20 minutes' drive) to another one anywhere in the
 // week's pool — usually a near-duplicate address, or two points worth bundling into a single dojazd.
 function proximityWarning(visitId){
   const {vs,cost}=baseCostContext();if(!cost)return null;
@@ -72,7 +72,7 @@ function proximityWarning(visitId){
     const a=cost[i]?.[j],b=cost[j]?.[i],seconds=Math.min(Number.isFinite(a)?a:Infinity,Number.isFinite(b)?b:Infinity);
     if(Number.isFinite(seconds)&&(!best||seconds<best.seconds))best={seconds,visit:vs[j-1]};
   }
-  return best&&best.seconds<600?best:null;
+  return best&&best.seconds<1200?best:null;
 }
 function locationTitle(l){return [l.code,l.city].filter(Boolean).join(' · ')||l.label||'Adres';}
 function toast(message){$('#toast').textContent=message;$('#toast').classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').classList.remove('show'),6500);}

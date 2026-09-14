@@ -1,4 +1,4 @@
-const CACHE='paczkoplan-shell-v3.1.1';
+const CACHE='paczkoplan-shell-v3.2.0';
 const FILES=['./','./index.html','./styles.css','./app.js','./core.js','./network.js','./storage.js','./manifest.webmanifest','./icon-192.png','./icon-512.png','./icon-maskable.png','./vendor/leaflet.js','./vendor/leaflet.css','./vendor/xlsx.full.min.js'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(FILES))));
 self.addEventListener('message',event=>{if(event.data?.type==='SKIP_WAITING')self.skipWaiting();});

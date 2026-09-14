@@ -31,7 +31,7 @@ Nie ma automatycznego układania całego tygodnia ani szacowania czasu pracy —
 
 Przy każdym kandydacie widać też czas powrotu do bazy, gdyby to on był ostatnim przystankiem tego dnia — pozwala to uniknąć sytuacji, w której dzień kończy się daleko od bazy z długim powrotem. Podsumowanie dnia pokazuje łączny czas jazdy między przystankami i czas powrotu z ostatniego punktu; powrót dłuższy niż godzinę jest wyróżniony.
 
-Kolejność w dniu można zmienić przeciąganiem (komputer) albo przyciskami góra/dół (telefon). „Zmień dzień” przenosi wizytę na inny dzień, „Usuń” zwraca ją do puli nieprzypisanych. Zlecenia bez współrzędnych lub niepotwierdzone (uwaga „nie jechać bez potwierdzenia”) nie mają aktywnego przycisku „Dodaj”, dopóki nie zostaną uzupełnione. Aplikacja nie zastępuje nieznanego dojazdu zerem ani fikcyjną trasą w linii prostej. Przy wielu ekipach wybierz jedną ekipę.
+Kolejność w dniu można zmienić przeciąganiem (komputer) albo przyciskami góra/dół (telefon), albo przyciskiem **„Optymalizuj kolejność”** przy nagłówku dnia — układa już dodane przystanki w najkrótszą trasę od bazy (lub miejsca noclegu) przez wszystkie z nich i z powrotem, dokładnym algorytmem dla typowej liczby przystanków dziennie. Nie dodaje ani nie usuwa niczego, tylko zmienia kolejność. **„Reset dnia”** usuwa wszystkie przystanki z bieżącego dnia naraz (po potwierdzeniu) — wracają do puli nieprzypisanych. „Zmień dzień” przenosi jedną wizytę na inny dzień, „Usuń” zwraca jedną wizytę do puli. Zlecenia bez współrzędnych lub niepotwierdzone (uwaga „nie jechać bez potwierdzenia”) nie mają aktywnego przycisku „Dodaj”, dopóki nie zostaną uzupełnione. Aplikacja nie zastępuje nieznanego dojazdu zerem ani fikcyjną trasą w linii prostej. Przy wielu ekipach wybierz jedną ekipę.
 
 Czasy są szacunkiem darmowego OSRM bez bieżących korków, do 70 lokalizacji naraz. Google Maps wyznacza bieżący dojazd osobno podczas nawigacji i nie zwraca swojego ETA do aplikacji. Używany profil to jazda samochodem; ograniczenia ciężarówek nie są modelowane.
 
@@ -47,13 +47,19 @@ Przy szczegółach zlecenia jest przycisk „Składy kruszywa w pobliżu” (szu
 
 ## Zobacz miejsce pracy
 
-Przy każdym przystanku i w szczegółach zlecenia jest przycisk „Zobacz miejsce pracy”: mapa danego punktu z podkładem OpenStreetMap, do którego można doklikać:
+Przy każdym przystanku i w szczegółach zlecenia jest przycisk „Zobacz miejsce pracy”: mapa danego punktu z wyborem podkładu i nakładek.
 
-- **Ortofotomapę** — zdjęcie lotnicze z Głównego Urzędu Geodezji i Kartografii (usługa WMS ORTO, bez klucza). Włącznik jest osobną kontrolką w lewym górnym rogu mapy.
-- **Sieci uzbrojenia terenu (GESUT)** — osobne przełączniki dla sieci wodociągowej, kanalizacyjnej, elektroenergetycznej, gazowej, ciepłowniczej, telekomunikacyjnej, specjalnej, niezidentyfikowanej i urządzeń, z krajowej usługi integracyjnej KIUT prowadzonej przez GUGiK. Zaznaczone sieci są pobierane jednym zapytaniem (WMS pozwala podać kilka warstw naraz), więc włączenie wszystkich naraz nie zalewa przeglądarki równoległymi żądaniami i nie zakłóca wczytywania ortofotomapy. Te warstwy są widoczne dopiero przy bardzo dużym przybliżeniu (blisko adresu, nie widoku miasta) i mogą nie obejmować wszystkich powiatów — dane pochodzą od 385 różnych podmiotów prowadzących rejestr.
-- **Street View** — zwykły odnośnik do panoramy Google Maps w danym punkcie, bez klucza API.
+**Mapa bazowa** — kontrolka w lewym górnym rogu mapy, pięć podkładów do wyboru (dokładnie jeden naraz), każdy jako miniaturka będąca prawdziwym wycinkiem tego podkładu w tym miejscu, nie generyczną ikoną:
+- **Ulice** — OpenStreetMap (domyślny).
+- **Satelita (szybsze)** — Esri World Imagery, publiczny serwis, zwykle szybciej odpowiada niż GUGiK.
+- **Satelita (nowsze)** — ortofotomapa Głównego Urzędu Geodezji i Kartografii (usługa WMS ORTO), często bardziej aktualna dla Polski niż globalne serwisy.
+- **Google hybryda** i **Google** — kafelki satelitarne+opisy oraz zwykła mapa Google, pobierane z nieoficjalnego, ogólnodostępnego adresu `mtN.google.com/vt` (bez klucza API). Wygodne przy dwóch osobach, ale nieoficjalne — Google może to zmienić lub zablokować bez zapowiedzi; jeśli przestanie działać, użyj innego podkładu.
 
-Wszystkie te usługi są publiczne i bezpłatne; żadna nie wymaga konta ani klucza.
+**Sieci uzbrojenia terenu (GESUT)** — osobne przełączniki (checkboxy) pod mapą dla sieci wodociągowej, kanalizacyjnej, elektroenergetycznej, gazowej, ciepłowniczej, telekomunikacyjnej, specjalnej, niezidentyfikowanej i urządzeń, z krajowej usługi integracyjnej KIUT prowadzonej przez GUGiK. Zaznaczone sieci są pobierane jednym zapytaniem (WMS pozwala podać kilka warstw naraz), więc włączenie wszystkich naraz nie zalewa przeglądarki równoległymi żądaniami i nie zakłóca wczytywania mapy bazowej. Te warstwy są widoczne dopiero przy bardzo dużym przybliżeniu (blisko adresu, nie widoku miasta) i mogą nie obejmować wszystkich powiatów — dane pochodzą od 385 różnych podmiotów prowadzących rejestr.
+
+**Street View** — zwykły odnośnik do panoramy Google Maps w danym punkcie, bez klucza API.
+
+Wszystkie te usługi są bezpłatne i nie wymagają konta ani klucza; podkłady Google są dodatkowo nieoficjalne (patrz wyżej).
 
 ## Notatki przy punkcie
 
@@ -72,11 +78,13 @@ Offline: interfejs, lista, opisy, statusy i zapisane wyniki pozostają dostępne
 Wszystko poniżej jest bezpłatne i nie wymaga klucza ani konta:
 - Lokalizacje: publiczny endpoint InPost Points bez tokena, gdy dostępny; zapasowo wyszukiwanie adresu w Nominatim z zatwierdzeniem wyniku. Endpoint InPost może zmienić zasady dostępu; pozostają adres i ręczna pinezka.
 - Trasy i macierz: publiczny serwer demonstracyjny OSRM. Bez klucza i opłat, ale bez gwarancji dostępności.
-- Podkład mapy: OpenStreetMap, z widocznym oznaczeniem źródła.
-- Ortofotomapa i sieci uzbrojenia terenu (GESUT/KIUT): usługi WMS Głównego Urzędu Geodezji i Kartografii.
+- Podkłady mapy „Zobacz miejsce pracy”: OpenStreetMap, Esri World Imagery, ortofotomapa i sieci uzbrojenia terenu (GESUT/KIUT) z usług WMS Głównego Urzędu Geodezji i Kartografii — wszystkie publiczne, bez klucza.
 - Nawigacja i Street View: zwykłe odnośniki Google Maps, bez Google Maps Platform API i bez konta rozliczeniowego.
 - Booking.com: zwykły odnośnik wyszukiwania, bez konta i klucza.
 - Składy kruszywa: publiczny Overpass API (OpenStreetMap), plus odnośnik wyszukiwania w Google Maps.
+
+Bezpłatne, ale nieoficjalne (Google może zmienić lub zablokować bez zapowiedzi):
+- Podkłady „Google” i „Google hybryda” w „Zobacz miejsce pracy”: publicznie dostępne kafelki `mtN.google.com/vt`, bez klucza API, ale poza oficjalnym wsparciem Google Maps Platform.
 
 Zapytania aplikacji do usług objętych kolejką (InPost, Nominatim, OSRM, Overpass) są rozdzielone odstępem co najmniej 1,2 s. Lokalizacje i macierz OSRM są ponownie używane. Nie ma geokodowania przy każdym wpisanym znaku ani wstępnego pobierania kafelków.
 
@@ -95,7 +103,7 @@ Repozytorium zawiera workflow GitHub Pages. W Settings → Pages wybierz GitHub 
 
 ## Sprawdzenia
 
-`node --test tests/*.test.mjs` sprawdza importer, daty, duplikaty, ranking kandydatów wg dojazdu, podsumowanie trasy dnia (w tym nocleg jako inny punkt startu), auto-rozkład, adresy URL (Google Maps/wyszukiwanie/Street View/Booking.com), kopie danych oraz że tylko darmowy OSRM liczy trasy (bez Google Distance Matrix czy zaszytego klucza). Opcjonalny test rzeczywistego Excela korzysta ze zmiennej `T38_EXCEL`; plik źródłowy nie jest częścią repozytorium. Żadne testy nie składają zleceń, nie wysyłają wiadomości ani nie wołają zewnętrznych usług na żywo.
+`node --test tests/*.test.mjs` sprawdza importer, daty, duplikaty, ranking kandydatów wg dojazdu, podsumowanie trasy dnia (w tym nocleg jako inny punkt startu), auto-rozkład, optymalizację kolejności (dokładny algorytm zgadza się z przeglądem zupełnym, honoruje nietypowy punkt startu, nigdy nie zmyśla trasy tam, gdzie jej brak), reset dnia z potwierdzeniem, pięć podkładów mapy bazowej, adresy URL (Google Maps/wyszukiwanie/Street View/Booking.com), kopie danych oraz że tylko darmowy OSRM liczy trasy (bez Google Distance Matrix czy zaszytego klucza). Opcjonalny test rzeczywistego Excela korzysta ze zmiennej `T38_EXCEL`; plik źródłowy nie jest częścią repozytorium. Żadne testy nie składają zleceń, nie wysyłają wiadomości ani nie wołają zewnętrznych usług na żywo.
 
 ## Biblioteki i dane
 

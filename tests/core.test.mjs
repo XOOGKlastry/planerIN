@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import {parseRows,mergeImport,defaultState,makeVisits,monday,isoDate,routeCost,rankCandidates,routeSummary,autoDistribute,googleMapsUrl,googleSearchUrl,bookingUrl,streetViewUrl,validateBackup,parseCoordinates} from '../dist/core.js';
+import {parseRows,mergeImport,defaultState,makeVisits,monday,isoDate,routeCost,improveRoute,exactRoute,rankCandidates,routeSummary,autoDistribute,googleMapsUrl,googleSearchUrl,bookingUrl,streetViewUrl,validateBackup,parseCoordinates} from '../dist/core.js';
 const headers=['Data','Nazwa PM','Nazwa lokalizacji','Miasto','Zaplanowane prace','Podłoże','Zgłoszenie','Miejsce','Uwagi Global','Czas [min]'];
 const rows=[headers,['2026-09-14','TEST01M','Sklep Opole Testowa 1','Opole','Serwis','Opis A','Z1','','',60],['2026-09-14','TEST01M','Sklep Opole Testowa 1','Opole','Pomiary','Opis B','Z2','','',45],['2026-09-14','TEST02M','Sklep Opole Testowa 2','Opole','Pomiary','Opis C','','M2','nie jechać bez potwierdzenia','']];
 test('dates are calendar dates, week starts Monday',()=>{assert.equal(monday('2026-09-20'),'2026-09-14');assert.equal(monday('2026-09-14'),'2026-09-14');assert.equal(isoDate('14.09.2026'),'2026-09-14');assert.equal(isoDate('31.02.2026'),null);});
@@ -34,6 +34,28 @@ test('route summary can start from a stop other than base (overnight the day bef
   const result=routeSummary(['v0'],vs,c,2);
   assert.equal(result.entries[0].travel,100/60);
   assert.equal(result.back,900/60);
+});
+test('directed route optimizer matches exhaustive enumeration (base start)',()=>{
+  const c=[[0,2,30,9,10],[20,0,1,70,30],[3,10,0,2,7],[80,2,10,0,1],[2,7,4,9,0]],arr=[1,2,3,4];
+  const perm=a=>a.length?a.flatMap((v,i)=>perm(a.filter((_,j)=>j!==i)).map(p=>[v,...p])):[[]];
+  const best=Math.min(...perm(arr).map(r=>routeCost(r,c)));
+  assert.equal(routeCost(exactRoute(arr,c),c),best);
+  assert.ok(routeCost(improveRoute(arr,c),c)<=routeCost(arr,c));
+});
+test('directed route optimizer honours a non-base start index (overnight anchor)',()=>{
+  const c=[[0,5,5,5],[5,0,1,9],[5,1,0,1],[5,9,1,0]],arr=[1,2,3];
+  const perm=a=>a.length?a.flatMap((v,i)=>perm(a.filter((_,j)=>j!==i)).map(p=>[v,...p])):[[]];
+  const best=Math.min(...perm(arr).map(r=>routeCost(r,c,1)));
+  assert.equal(routeCost(exactRoute(arr,c,1),c,1),best);
+});
+test('route optimizer finds the cheaper order when one direction is much worse',()=>{
+  const c=[[0,5,100],[5,0,1],[3,1,0]];
+  assert.deepEqual(exactRoute([2,1],c),[1,2]);
+  assert.equal(routeCost(exactRoute([2,1],c),c),9);
+});
+test('route optimizer never fabricates a finite cost when no tour exists',()=>{
+  const c=[[0,5,Infinity],[5,0,1],[Infinity,1,0]];
+  assert.ok(!Number.isFinite(routeCost(exactRoute([1,2],c),c)));
 });
 test('missing route data is flagged, not silently treated as zero-cost',()=>{
   const result=routeSummary(['v0','missing'],visits(1),matrix(1));

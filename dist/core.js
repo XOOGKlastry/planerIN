@@ -105,7 +105,25 @@ export function makeVisits(jobs, locations) {
   }
   return [...grouped.values()].map(v=>({...v,id:`v:${hash(v.jobs.map(j=>j.id).sort().join('|'))}`,blocked:v.jobs.some(j=>j.requiresConfirmation&&!j.confirmed),done:v.jobs.every(j=>j.status==='done')}));
 }
-export function routeCost(route,cost){let total=0,prev=0;for(const i of route){const leg=cost[prev]?.[i];if(!Number.isFinite(leg))return Infinity;total+=leg;prev=i;} const end=cost[prev]?.[0];return total+(Number.isFinite(end)?end:Infinity);}
+export function routeCost(route,cost,startIndex=0){let total=0,prev=startIndex;for(const i of route){const leg=cost[prev]?.[i];if(!Number.isFinite(leg))return Infinity;total+=leg;prev=i;} const end=cost[prev]?.[0];return total+(Number.isFinite(end)?end:Infinity);}
+// Directed 2-opt fallback for routes too long for the exact solver below.
+export function improveRoute(route,cost,startIndex=0) {
+  let best=route.slice(),bestCost=routeCost(best,cost,startIndex),changed=true,round=0;
+  while(changed&&round++<30){changed=false; for(let i=0;i<best.length-1;i++)for(let j=i+1;j<best.length;j++){const next=[...best.slice(0,i),...best.slice(i,j+1).reverse(),...best.slice(j+1)];const c=routeCost(next,cost,startIndex);if(c<bestCost-0.1){best=next;bestCost=c;changed=true;}}}
+  return best;
+}
+// Exact directed TSP (subset DP, O(n^2 2^n)) for reordering a day's own stops into the shortest path
+// from startIndex (base, or an overnight anchor) through all of them and back to base. Manual "Dodaj"
+// order is never touched automatically — this only runs when the user asks via "Optymalizuj kolejność".
+export function exactRoute(route,cost,startIndex=0){
+  if(route.length<2)return route.slice(); if(route.length>11)return improveRoute(route,cost,startIndex);
+  const n=route.length,size=1<<n,dp=Array.from({length:size},()=>Array(n).fill(Infinity)),parent=Array.from({length:size},()=>Array(n).fill(-1));
+  for(let i=0;i<n;i++)dp[1<<i][i]=cost[startIndex]?.[route[i]]??Infinity;
+  for(let mask=1;mask<size;mask++)for(let last=0;last<n;last++)if(mask&(1<<last))for(let next=0;next<n;next++)if(!(mask&(1<<next))){const v=dp[mask][last]+(cost[route[last]]?.[route[next]]??Infinity),m=mask|(1<<next);if(v<dp[m][next]){dp[m][next]=v;parent[m][next]=last;}}
+  let last=0;for(let i=1;i<n;i++)if(dp[size-1][i]+(cost[route[i]]?.[0]??Infinity)<dp[size-1][last]+(cost[route[last]]?.[0]??Infinity))last=i;
+  if(!Number.isFinite(dp[size-1][last]+(cost[route[last]]?.[0]??Infinity)))return route.slice();
+  let mask=size-1;const result=[];while(last>=0){result.unshift(route[last]);const prev=parent[mask][last];mask^=1<<last;last=prev;} return result;
+}
 // Rank the remaining pool by travel time from the last chosen stop (fromIndex; 0 = base), nearest first.
 // Unreachable candidates (no route data) sort last rather than being hidden, so nothing silently disappears.
 export function rankCandidates(fromIndex, poolIndices, cost) {

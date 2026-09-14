@@ -7,7 +7,7 @@
 5. Wybierz **Importuj Excel** i plik z aplikacji Pliki.
 6. W Ustawieniach wpisz bazę — miejsce startu i codziennego powrotu.
 7. Naciśnij **Policz odległości**, żeby zobaczyć podpowiedzi „co jest po drodze” (domyślnie darmowy OSRM).
-8. Na każdy dzień sam wybierz pierwszy przystanek, a potem kolejne z podpowiedzianej listy — albo naciśnij **Zaproponuj rozkład**, żeby od razu rozłożyć resztę zleceń, i popraw ręcznie. Przycisk **Prowadź** otwiera Google Maps.
+8. Na każdy dzień sam wybierz pierwszy przystanek, a potem kolejne z podpowiedzianej listy — albo naciśnij **Zaproponuj rozkład**, żeby od razu rozłożyć resztę zleceń, i popraw ręcznie. Przy nagłówku dnia jest też **Optymalizuj kolejność** (układa już dodane przystanki w najkrótszą trasę) i **Reset dnia** (usuwa wszystkie przystanki z dnia, po potwierdzeniu). Przycisk **Prowadź** otwiera Google Maps.
 
 Nie ma ustawiania przerw ani wyboru dni roboczych — tydzień to zawsze 7 dni. Bez płatności ani konta rozliczeniowego — trasy zawsze liczy darmowy OSRM.
 
@@ -17,7 +17,7 @@ Przy ostatnim przystanku dnia jest przycisk „Nocleg tutaj zamiast powrotu” �
 
 ## Zobacz miejsce pracy i notatki
 
-Przy każdym przystanku jest przycisk „Zobacz miejsce pracy” — mapa z opcjonalną ortofotomapą i sieciami uzbrojenia terenu (prąd, gaz, wodociąg, kanalizacja i inne, z rejestru GESUT) plus odnośnik do Street View. Zamiast przycisku „Start” jest „Dodaj notatkę” — notatka od razu pokazuje się przy tym punkcie na liście.
+Przy każdym przystanku jest przycisk „Zobacz miejsce pracy” — mapa z wyborem podkładu w lewym górnym rogu (Ulice, dwa warianty satelitarne — szybszy Esri i nowszy GUGiK, oraz Google i Google hybryda) i sieciami uzbrojenia terenu (prąd, gaz, wodociąg, kanalizacja i inne, z rejestru GESUT) plus odnośnik do Street View. Zamiast przycisku „Start” jest „Dodaj notatkę” — notatka od razu pokazuje się przy tym punkcie na liście.
 
 ## Dla drugiego telefonu
 

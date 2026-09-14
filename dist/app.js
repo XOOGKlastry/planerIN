@@ -1,4 +1,4 @@
-import {DAY_NAMES,JOB_TYPES,norm,text,uid,hash,isoDate,addDays,monday,today,defaultState,parseRows,mergeImport,makeVisits,rankCandidates,routeSummary,autoDistribute,validCoords,parseCoordinates,formatDuration,googleMapsUrl,googleSearchUrl,bookingUrl,streetViewUrl,haversine,validateBackup} from './core.js';
+import {DAY_NAMES,JOB_TYPES,norm,text,uid,hash,isoDate,addDays,monday,today,defaultState,parseRows,mergeImport,makeVisits,rankCandidates,routeSummary,autoDistribute,exactRoute,validCoords,parseCoordinates,formatDuration,googleMapsUrl,googleSearchUrl,bookingUrl,streetViewUrl,haversine,validateBackup} from './core.js';
 import {resolveLocation,fetchMatrix,findMaterialYards,fetchRoute,matrixKey,SERVICES,GESUT_LAYERS} from './network.js';
 import {loadState,persistState} from './storage.js';
 
@@ -80,7 +80,7 @@ function renderWeek(vs,p,unready){
   const {vs:ctxVs,anchor}=dayCostContext(selectedDay);
   const anchorLocation=anchor===0?state.settings.base:ctxVs[anchor-1]?.location;
   const overnight=!!p?.overnight?.[selectedDay];
-  return `${weekSelector()}${!validCoords(state.settings.base)?notice('<strong>Skąd ruszacie?</strong>Ustaw miejsce startu i powrotu, żeby widzieć podpowiedzi tras.','<button class="small" data-act="view" data-view="settings">Ustaw start</button>'):''}${unready.length?notice(`<strong>${unready.length} ${unready.length===1?'wizyta wymaga':'wizyt wymaga'} sprawdzenia</strong>${vs.filter(v=>!validCoords(v.location)).length} bez potwierdzonej lokalizacji · ${vs.filter(v=>v.blocked).length} czeka na zgodę na wyjazd.`,`<button class="small" data-act="resolve-all">Sprawdź lokalizacje</button>`):''}${p&&!matrixValid()?notice('Zmieniły się lokalizacje lub miejsce startu. Policz odległości ponownie, aby zobaczyć aktualne podpowiedzi.','','info'):''}${!p?notice('Zlecenia są wczytane. Wybierz pierwszy przystanek poniżej albo policz odległości, żeby zobaczyć co jest po drodze.','','info'):''}<div class="day-grid seven">${ALL_DAYS.map(dayTile).join('')}</div><div class="work-area"><section class="panel list-panel"><div class="panel-title"><h2>${DAY_NAMES[selectedDay]}, ${formatDate(addDays(state.settings.week,selectedDay))}</h2><span class="pill">${route.filter(v=>v.done).length}/${route.length} wykonano</span></div><div class="summary"><div><span>Przystanki</span><strong>${route.length}</strong></div><div><span>W drodze między nimi</span><strong>${route.length?formatDuration(summary.driving):'—'}</strong></div><div><span>Powrót do bazy stąd</span><strong class="${summary.back>=60?'warn':''}">${route.length||anchor!==0?(summary.hasMissing?'brak danych':formatDuration(summary.back)):'—'}</strong></div></div>${route.length?`<div class="route-start"><span class="base-icon">${icon('home')}</span><div><strong>${esc(anchorLocation?.label||'Miejsce startu')}</strong><span>${anchor!==0?'Start od miejsca noclegu':'Start trasy'}</span></div></div>${route.map((v,i)=>renderStop(v,i,summary.entries.find(e=>e.visit?.id===v.id))).join('')}${renderRouteEnd(selectedDay,summary,distance,overnight,route)}`:`<div class="list-empty">${icon('calendar')}<h3>Wybierz pierwszy przystanek</h3><p>Zobacz propozycje poniżej — zaczynaj od tego, co jest najbliżej.</p></div>`}</section><aside class="panel map-panel"><div class="map-toolbar"><h3>${icon('map')} Trasa dnia</h3><button class="small quiet" data-act="fit-map">Pokaż całość</button></div><div id="map" class="map-canvas" aria-label="Mapa punktów i trasy"></div><div class="map-foot"><span>Numer punktu = kolejność na liście</span><span>${distance!==null&&route.length?`${Math.round(distance/1000)} km`:''}</span></div><div class="map-note">${route.length?'Czasy drogowe OSRM, bez bieżących korków. Google Maps wyznaczy dojazd podczas nawigacji.':'Na mapie są lokalizacje wybranego tygodnia.'}${route.length?`<button class="small" style="margin-top:10px" data-act="load-route">${icon('refresh')}Odśwież przebieg trasy</button>`:''}<button class="small" style="margin-top:10px" data-act="materials-route">${icon('map')}Znajdź składy po drodze</button></div></aside></div>${renderAddSection(selectedDay)}`;
+  return `${weekSelector()}${!validCoords(state.settings.base)?notice('<strong>Skąd ruszacie?</strong>Ustaw miejsce startu i powrotu, żeby widzieć podpowiedzi tras.','<button class="small" data-act="view" data-view="settings">Ustaw start</button>'):''}${unready.length?notice(`<strong>${unready.length} ${unready.length===1?'wizyta wymaga':'wizyt wymaga'} sprawdzenia</strong>${vs.filter(v=>!validCoords(v.location)).length} bez potwierdzonej lokalizacji · ${vs.filter(v=>v.blocked).length} czeka na zgodę na wyjazd.`,`<button class="small" data-act="resolve-all">Sprawdź lokalizacje</button>`):''}${p&&!matrixValid()?notice('Zmieniły się lokalizacje lub miejsce startu. Policz odległości ponownie, aby zobaczyć aktualne podpowiedzi.','','info'):''}${!p?notice('Zlecenia są wczytane. Wybierz pierwszy przystanek poniżej albo policz odległości, żeby zobaczyć co jest po drodze.','','info'):''}<div class="day-grid seven">${ALL_DAYS.map(dayTile).join('')}</div><div class="work-area"><section class="panel list-panel"><div class="panel-title"><h2>${DAY_NAMES[selectedDay]}, ${formatDate(addDays(state.settings.week,selectedDay))}</h2><div class="flex" style="gap:8px"><span class="pill">${route.filter(v=>v.done).length}/${route.length} wykonano</span>${route.length>=2?`<button class="small quiet" data-act="optimize-day">${icon('route')}Optymalizuj kolejność</button>`:''}${route.length?`<button class="small quiet" data-act="reset-day">${icon('close')}Reset dnia</button>`:''}</div></div><div class="summary"><div><span>Przystanki</span><strong>${route.length}</strong></div><div><span>W drodze między nimi</span><strong>${route.length?formatDuration(summary.driving):'—'}</strong></div><div><span>Powrót do bazy stąd</span><strong class="${summary.back>=60?'warn':''}">${route.length||anchor!==0?(summary.hasMissing?'brak danych':formatDuration(summary.back)):'—'}</strong></div></div>${route.length?`<div class="route-start"><span class="base-icon">${icon('home')}</span><div><strong>${esc(anchorLocation?.label||'Miejsce startu')}</strong><span>${anchor!==0?'Start od miejsca noclegu':'Start trasy'}</span></div></div>${route.map((v,i)=>renderStop(v,i,summary.entries.find(e=>e.visit?.id===v.id))).join('')}${renderRouteEnd(selectedDay,summary,distance,overnight,route)}`:`<div class="list-empty">${icon('calendar')}<h3>Wybierz pierwszy przystanek</h3><p>Zobacz propozycje poniżej — zaczynaj od tego, co jest najbliżej.</p></div>`}</section><aside class="panel map-panel"><div class="map-toolbar"><h3>${icon('map')} Trasa dnia</h3><button class="small quiet" data-act="fit-map">Pokaż całość</button></div><div id="map" class="map-canvas" aria-label="Mapa punktów i trasy"></div><div class="map-foot"><span>Numer punktu = kolejność na liście</span><span>${distance!==null&&route.length?`${Math.round(distance/1000)} km`:''}</span></div><div class="map-note">${route.length?'Czasy drogowe OSRM, bez bieżących korków. Google Maps wyznaczy dojazd podczas nawigacji.':'Na mapie są lokalizacje wybranego tygodnia.'}${route.length?`<button class="small" style="margin-top:10px" data-act="load-route">${icon('refresh')}Odśwież przebieg trasy</button>`:''}<button class="small" style="margin-top:10px" data-act="materials-route">${icon('map')}Znajdź składy po drodze</button></div></aside></div>${renderAddSection(selectedDay)}`;
 }
 function renderRouteEnd(day,summary,distance,overnight,route){
   const lastLocation=route.at(-1)?.location;
@@ -187,6 +187,27 @@ async function autoDistributeAction(){
   state.plans[planKey()]=p;await save();
   toast(leftover.length?`Rozłożono. ${leftover.length} zleceń zbyt daleko lub bez dojazdu — zostały nieprzypisane.`:'Rozłożono zlecenia na dni. Popraw kolejność, jeśli trzeba.');
 }
+// Reorders the day's own stops for the shortest path from its anchor (base, or an overnight start) and
+// back — never adds or removes anything, only asked for explicitly via "Optymalizuj kolejność".
+async function optimizeDayOrder(day){
+  const {vs,cost,anchor}=dayCostContext(day);
+  if(!cost)return toast('Najpierw policz odległości.');
+  const route=dayRoute(day);if(route.length<2)return toast('Za mało przystanków, żeby coś optymalizować.');
+  const indices=route.map(v=>vs.findIndex(a=>a.id===v.id)+1);
+  if(indices.some(i=>i<=0))return toast('Brakuje danych o dojeździe do części przystanków. Policz odległości ponownie.');
+  const optimized=exactRoute(indices,cost,anchor);
+  const p=currentPlan();if(!p)return;
+  p.routes[day]=optimized.map(i=>vs[i-1].id);
+  state.plans[planKey()]=p;await save();loadDayRoute();
+  toast('Kolejność zoptymalizowana.');
+}
+async function resetDay(day){
+  const route=dayRoute(day);if(!route.length)return toast('Ten dzień jest już pusty.');
+  if(!confirm(`Usunąć wszystkie ${route.length} ${route.length===1?'przystanek':'przystanki'} z tego dnia? Wrócą do puli nieprzypisanych.`))return;
+  const p=currentPlan();if(!p)return;
+  p.routes[day]=[];state.plans[planKey()]=p;await save();
+  toast('Dzień wyczyszczony.');
+}
 async function loadDayRoute(){
   const key=planKey(),day=selectedDay,p=state.plans[key],route=dayRoute(day),base=state.settings.base;
   if(!p||!validCoords(base)||!route.length||route.some(v=>!validCoords(v.location)))return;
@@ -258,33 +279,76 @@ async function clearNote(id){
   modal.close();await save();toast('Notatka usunięta.');
 }
 
-let workMap=null,workOrtofoto=null,workGesut=null,workGesutChecked=new Set();
-// A closer look at one address: OSM base, optional GUGiK orthophoto and GESUT utility-line overlays
-// (electric/gas/water/sewage/…), plus a plain link out to Street View. All free public WMS, no key.
+// Five base maps, each a real small crop of that provider centred on the point being shown — not a
+// generic icon — so the picker doubles as a preview of what each style actually looks like here.
+const BASE_LAYERS=[
+  {id:'osm',label:'Ulice',sub:'OpenStreetMap'},
+  {id:'esri',label:'Satelita',sub:'Esri (szybsze)'},
+  {id:'orto',label:'Satelita',sub:'GUGiK (nowsze)'},
+  {id:'google-hybrid',label:'Google',sub:'hybryda'},
+  {id:'google',label:'Google',sub:'mapa'},
+];
+function tileXY(lat,lng,z){
+  const n=2**z,x=Math.floor((lng+180)/360*n),latRad=lat*Math.PI/180;
+  const y=Math.floor((1-Math.log(Math.tan(latRad)+1/Math.cos(latRad))/Math.PI)/2*n);
+  return {x,y};
+}
+function mercatorPoint(lat,lng){
+  const x=lng*20037508.34/180;
+  return [x,Math.log(Math.tan((90+lat)*Math.PI/360))/(Math.PI/180)*20037508.34/180];
+}
+function baseLayerThumbUrl(id,lat,lng){
+  const z=17,{x,y}=tileXY(lat,lng,z);
+  if(id==='esri')return `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`;
+  if(id==='orto'){const [mx,my]=mercatorPoint(lat,lng),half=150;return `${SERVICES.ortofoto}?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=Raster&STYLES=&FORMAT=image/jpeg&TRANSPARENT=false&CRS=EPSG:3857&WIDTH=128&HEIGHT=128&BBOX=${mx-half},${my-half},${mx+half},${my+half}`;}
+  if(id==='google-hybrid')return `https://mt1.google.com/vt/lyrs=y&x=${x}&y=${y}&z=${z}`;
+  if(id==='google')return `https://mt1.google.com/vt/lyrs=m&x=${x}&y=${y}&z=${z}`;
+  return `https://tile.openstreetmap.org/${z}/${x}/${y}.png`;
+}
+// Google tiles here are the unofficial `mtN.google.com/vt` endpoint (no key) many hobby map tools use —
+// convenient for a 2-person internal app, but unsupported: Google can change or block it without notice.
+function makeBaseTileLayer(id){
+  if(id==='esri')return L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Esri, Maxar, Earthstar Geographics'});
+  if(id==='orto')return L.tileLayer.wms(SERVICES.ortofoto,{layers:'Raster',format:'image/jpeg',version:'1.3.0',maxZoom:19,attribution:'GUGiK ORTO'});
+  if(id==='google-hybrid')return L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',{subdomains:['mt0','mt1','mt2','mt3'],maxZoom:20,attribution:'Google (nieoficjalne kafelki)'});
+  if(id==='google')return L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',{subdomains:['mt0','mt1','mt2','mt3'],maxZoom:20,attribution:'Google (nieoficjalne kafelki)'});
+  return L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'});
+}
+let workMap=null,workBaseLayer=null,workBaseId='osm',workGesut=null,workGesutChecked=new Set();
+// A closer look at one address: a choice of base map, optional GESUT utility-line overlays
+// (electric/gas/water/sewage/…), plus a plain link out to Street View. All free, no key anywhere.
 // The GESUT lines are requested as ONE WMS layer with a comma-joined LAYERS param (updated via
 // setParams as checkboxes change) rather than one tile layer per network type — checking several at
-// once used to fire that many parallel tile requests at the same host, which starved the ortofoto
-// layer's own requests and made it appear to fail. Ortofoto stays a separate layer/host, unaffected.
+// once used to fire that many parallel tile requests at the same host, which starved the base map's
+// own tile requests and made it appear to fail.
 function showWorkMap(id){
   const v=currentVisits().find(v=>v.id===id);if(!v||!validCoords(v.location))return toast('Najpierw ustal lokalizację punktu.');
   const loc=v.location,pano=streetViewUrl(loc);
-  showModal(`Miejsce pracy — ${locationTitle(loc)}`,`<div class="flex wrap" style="margin-bottom:14px">${pano?`<a class="nav-link" href="${esc(pano)}" target="_blank" rel="noopener noreferrer">${icon('eye')}Street View</a>`:''}</div><div id="work-map" class="map-canvas" style="height:400px;border-radius:10px"></div><div class="layer-toggles" id="work-layers">${GESUT_LAYERS.map(l=>`<label><input type="checkbox" data-layer="${esc(l.name)}"><span>${esc(l.title)}</span></label>`).join('')}</div><p class="privacy-text" style="margin-top:14px">Warstwy uzbrojenia terenu (GESUT) są widoczne dopiero przy bardzo dużym przybliżeniu — podjedź blisko punktu. Dane z usług Głównego Urzędu Geodezji i Kartografii, mogą nie obejmować wszystkich powiatów.</p>`,`<button data-act="close">Zamknij</button>`);
+  showModal(`Miejsce pracy — ${locationTitle(loc)}`,`<div class="flex wrap" style="margin-bottom:14px">${pano?`<a class="nav-link" href="${esc(pano)}" target="_blank" rel="noopener noreferrer">${icon('eye')}Street View</a>`:''}</div><div id="work-map" class="map-canvas" style="height:400px;border-radius:10px"></div><div class="layer-toggles" id="work-layers">${GESUT_LAYERS.map(l=>`<label><input type="checkbox" data-layer="${esc(l.name)}"><span>${esc(l.title)}</span></label>`).join('')}</div><p class="privacy-text" style="margin-top:14px">Warstwy uzbrojenia terenu (GESUT) są widoczne dopiero przy bardzo dużym przybliżeniu — podjedź blisko punktu. Dane z usług Głównego Urzędu Geodezji i Kartografii, mogą nie obejmować wszystkich powiatów. Podkład Google to nieoficjalne kafelki bez klucza — mogą przestać działać bez zapowiedzi.</p>`,`<button data-act="close">Zamknij</button>`);
   drawWorkMap(loc);
 }
 function drawWorkMap(loc){
   if(!globalThis.L)return;
-  workOrtofoto=null;workGesut=null;workGesutChecked=new Set();
+  workGesut=null;workGesutChecked=new Set();workBaseId='osm';
   workMap=L.map('work-map',{zoomControl:true}).setView([loc.lat,loc.lng],19);
-  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(workMap);
+  workBaseLayer=makeBaseTileLayer(workBaseId).addTo(workMap);
   L.marker([loc.lat,loc.lng],{icon:L.divIcon({className:'',html:'<div class="map-pin active">•</div>',iconSize:[32,32],iconAnchor:[16,16]})}).addTo(workMap);
-  const ortofotoControl=L.control({position:'topleft'});
-  ortofotoControl.onAdd=()=>{
-    const div=L.DomUtil.create('div','leaflet-bar map-ortofoto-control');
-    div.innerHTML='<label><input type="checkbox" data-layer="ortofoto"><span>Ortofotomapa</span></label>';
+  const baseControl=L.control({position:'topleft'});
+  baseControl.onAdd=()=>{
+    const div=L.DomUtil.create('div','leaflet-bar map-base-picker');
+    div.innerHTML=`<div class="map-base-title">Mapa bazowa</div><div class="map-base-row">${BASE_LAYERS.map(b=>`<button type="button" class="map-base-thumb ${b.id===workBaseId?'active':''}" data-base="${b.id}" style="background-image:url('${esc(baseLayerThumbUrl(b.id,loc.lat,loc.lng))}')"><span>${esc(b.label)}</span><small>${esc(b.sub)}</small></button>`).join('')}</div>`;
     L.DomEvent.disableClickPropagation(div);
+    div.addEventListener('click',e=>{
+      const btn=e.target.closest('[data-base]');if(!btn||btn.dataset.base===workBaseId)return;
+      workBaseId=btn.dataset.base;
+      workMap.removeLayer(workBaseLayer);
+      workBaseLayer=makeBaseTileLayer(workBaseId).addTo(workMap);
+      workBaseLayer.bringToBack();
+      div.querySelectorAll('[data-base]').forEach(b=>b.classList.toggle('active',b.dataset.base===workBaseId));
+    });
     return div;
   };
-  ortofotoControl.addTo(workMap);
+  baseControl.addTo(workMap);
   setTimeout(()=>workMap?.invalidateSize(),100);
 }
 function toggleGesutLayer(name,checked){
@@ -293,10 +357,6 @@ function toggleGesutLayer(name,checked){
   if(!names){if(workGesut)workMap.removeLayer(workGesut);return;}
   if(workGesut){workGesut.setParams({layers:names});if(!workMap.hasLayer(workGesut))workGesut.addTo(workMap);}
   else{workGesut=L.tileLayer.wms(SERVICES.gesut,{layers:names,format:'image/png',transparent:true,version:'1.3.0',maxZoom:19,attribution:'GUGiK KIUT'});workGesut.addTo(workMap);}
-}
-function toggleOrtofotoLayer(checked){
-  if(!workOrtofoto)workOrtofoto=L.tileLayer.wms(SERVICES.ortofoto,{layers:'Raster',format:'image/jpeg',version:'1.3.0',maxZoom:19,attribution:'GUGiK ORTO'});
-  if(checked)workOrtofoto.addTo(workMap);else workMap.removeLayer(workOrtofoto);
 }
 
 let geoSelection=null;
@@ -345,6 +405,8 @@ document.addEventListener('click',async event=>{
     case 'week-shift':state.settings.week=addDays(state.settings.week,Number(button.dataset.offset));state.settings.crew='';await save();break;
     case 'refresh-matrix':await refreshMatrix();break;
     case 'auto-distribute':await autoDistributeAction();break;
+    case 'optimize-day':await optimizeDayOrder(selectedDay);break;
+    case 'reset-day':await resetDay(selectedDay);break;
     case 'toggle-overnight':await toggleOvernight(Number(button.dataset.day));break;
     case 'materials':await showMaterials(id);break;
     case 'materials-route':await showMaterialsRoute(selectedDay);break;
@@ -374,7 +436,7 @@ document.addEventListener('click',async event=>{
 function drawMapAgain(){if(map){map.remove();map=null;}drawMap();}
 document.addEventListener('keydown',event=>{if((event.key==='Enter'||event.key===' ')&&event.target.id==='import-drop'){event.preventDefault();$('#excel-input').click();}});
 document.addEventListener('submit',async event=>{event.preventDefault();const form=event.target;if(busy)return;try{if(form.id==='visit-form')await saveVisit(form);if(form.id==='geo-form')await searchGeo(new FormData(form).get('query'));if(form.id==='add-job-form')await addJob(form);if(form.id==='move-form')await moveDayVisit(form.dataset.visit,Number(new FormData(form).get('day')));if(form.id==='note-form')await saveNote(form);}catch(e){toast(e.message);}});
-document.addEventListener('change',async event=>{const el=event.target;if(el.dataset.layer==='ortofoto'){if(workMap)toggleOrtofotoLayer(el.checked);return;}if(el.closest?.('#work-layers')){if(workMap)toggleGesutLayer(el.dataset.layer,el.checked);return;}if(el.id==='week-picker'){if(!isoDate(el.value))return;state.settings.week=monday(el.value);state.settings.crew='';await save();}if(el.id==='crew-picker'){state.settings.crew=el.value;await save();}if(el.id==='job-filter'){filter=el.value;render();}if(el.id==='excel-input'&&el.files[0])await readExcel(el.files[0]);if(el.id==='backup-input'&&el.files[0])await readBackup(el.files[0]);});
+document.addEventListener('change',async event=>{const el=event.target;if(el.closest?.('#work-layers')){if(workMap)toggleGesutLayer(el.dataset.layer,el.checked);return;}if(el.id==='week-picker'){if(!isoDate(el.value))return;state.settings.week=monday(el.value);state.settings.crew='';await save();}if(el.id==='crew-picker'){state.settings.crew=el.value;await save();}if(el.id==='job-filter'){filter=el.value;render();}if(el.id==='excel-input'&&el.files[0])await readExcel(el.files[0]);if(el.id==='backup-input'&&el.files[0])await readBackup(el.files[0]);});
 let searchTimer;document.addEventListener('input',event=>{if(event.target.id==='search-jobs'){search=event.target.value;clearTimeout(searchTimer);searchTimer=setTimeout(()=>{render();const e=$('#search-jobs');if(e){e.focus();e.setSelectionRange(search.length,search.length);}},200);}});
 modal.addEventListener('cancel',e=>{if(busy)e.preventDefault();});
 window.addEventListener('online',()=>{render();toast('Połączenie przywrócone.');});window.addEventListener('offline',()=>render());

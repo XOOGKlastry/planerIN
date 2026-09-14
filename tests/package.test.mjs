@@ -48,8 +48,12 @@ test('each day of the week has its own colour, used for the map route/pins and e
   const styles=fs.readFileSync(path.join(root,'styles.css'),'utf8');
   for(let i=0;i<7;i++)assert.match(styles,new RegExp(`\\.map-pin\\.day${i}\\{`));
 });
-test('the seven day tiles fit a phone width without needing a horizontal scroll',()=>{
-  const styles=fs.readFileSync(path.join(root,'styles.css'),'utf8');
-  const narrow=styles.slice(styles.lastIndexOf('@media(max-width:650px)'));
-  assert.match(narrow,/\.day-grid\.seven\{grid-template-columns:repeat\(7,minmax\(0,1fr\)\);overflow:visible\}/);
+test('only the five weekdays are plannable — no Saturday/Sunday tab, and nothing left over from them can be silently lost',()=>{
+  const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
+  const match=app.match(/const ALL_DAYS=\[([^\]]+)\]/);
+  assert.ok(match);
+  assert.deepEqual(match[1].split(',').map(s=>Number(s.trim())),[0,1,2,3,4]);
+  assert.doesNotMatch(app,/day-grid seven/);
+  assert.match(app,/function placedVisitIds\(\)\{return new Set\(Object\.entries\(currentPlan\(\)\?\.routes\|\|\{\}\)\.filter\(\(\[d\]\)=>ALL_DAYS\.includes\(Number\(d\)\)\)/);
+  assert.match(app,/ALL_DAYS\.map\(i=>`<option value="\$\{i\}"/,'move-visit dropdown must only offer weekdays');
 });

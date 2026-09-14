@@ -49,8 +49,8 @@ Przy szczegółach zlecenia jest przycisk „Składy kruszywa w pobliżu” (szu
 
 Przy każdym przystanku i w szczegółach zlecenia jest przycisk „Zobacz miejsce pracy”: mapa danego punktu z podkładem OpenStreetMap, do którego można doklikać:
 
-- **Ortofotomapę** — zdjęcie lotnicze z Głównego Urzędu Geodezji i Kartografii (usługa WMS ORTO, bez klucza).
-- **Sieci uzbrojenia terenu (GESUT)** — osobne przełączniki dla sieci wodociągowej, kanalizacyjnej, elektroenergetycznej, gazowej, ciepłowniczej, telekomunikacyjnej, specjalnej, niezidentyfikowanej i urządzeń, z krajowej usługi integracyjnej KIUT prowadzonej przez GUGiK. Te warstwy są widoczne dopiero przy bardzo dużym przybliżeniu (blisko adresu, nie widoku miasta) i mogą nie obejmować wszystkich powiatów — dane pochodzą od 385 różnych podmiotów prowadzących rejestr.
+- **Ortofotomapę** — zdjęcie lotnicze z Głównego Urzędu Geodezji i Kartografii (usługa WMS ORTO, bez klucza). Włącznik jest osobną kontrolką w lewym górnym rogu mapy.
+- **Sieci uzbrojenia terenu (GESUT)** — osobne przełączniki dla sieci wodociągowej, kanalizacyjnej, elektroenergetycznej, gazowej, ciepłowniczej, telekomunikacyjnej, specjalnej, niezidentyfikowanej i urządzeń, z krajowej usługi integracyjnej KIUT prowadzonej przez GUGiK. Zaznaczone sieci są pobierane jednym zapytaniem (WMS pozwala podać kilka warstw naraz), więc włączenie wszystkich naraz nie zalewa przeglądarki równoległymi żądaniami i nie zakłóca wczytywania ortofotomapy. Te warstwy są widoczne dopiero przy bardzo dużym przybliżeniu (blisko adresu, nie widoku miasta) i mogą nie obejmować wszystkich powiatów — dane pochodzą od 385 różnych podmiotów prowadzących rejestr.
 - **Street View** — zwykły odnośnik do panoramy Google Maps w danym punkcie, bez klucza API.
 
 Wszystkie te usługi są publiczne i bezpłatne; żadna nie wymaga konta ani klucza.

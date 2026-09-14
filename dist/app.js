@@ -258,24 +258,45 @@ async function clearNote(id){
   modal.close();await save();toast('Notatka usunięta.');
 }
 
-let workMap=null,workLayers={};
+let workMap=null,workOrtofoto=null,workGesut=null,workGesutChecked=new Set();
 // A closer look at one address: OSM base, optional GUGiK orthophoto and GESUT utility-line overlays
 // (electric/gas/water/sewage/…), plus a plain link out to Street View. All free public WMS, no key.
+// The GESUT lines are requested as ONE WMS layer with a comma-joined LAYERS param (updated via
+// setParams as checkboxes change) rather than one tile layer per network type — checking several at
+// once used to fire that many parallel tile requests at the same host, which starved the ortofoto
+// layer's own requests and made it appear to fail. Ortofoto stays a separate layer/host, unaffected.
 function showWorkMap(id){
   const v=currentVisits().find(v=>v.id===id);if(!v||!validCoords(v.location))return toast('Najpierw ustal lokalizację punktu.');
   const loc=v.location,pano=streetViewUrl(loc);
-  showModal(`Miejsce pracy — ${locationTitle(loc)}`,`<div class="flex wrap" style="margin-bottom:14px">${pano?`<a class="nav-link" href="${esc(pano)}" target="_blank" rel="noopener noreferrer">${icon('eye')}Street View</a>`:''}</div><div id="work-map" class="map-canvas" style="height:400px;border-radius:10px"></div><div class="layer-toggles" id="work-layers"><label><input type="checkbox" data-layer="ortofoto"><span>Ortofotomapa</span></label>${GESUT_LAYERS.map(l=>`<label><input type="checkbox" data-layer="${esc(l.name)}"><span>${esc(l.title)}</span></label>`).join('')}</div><p class="privacy-text" style="margin-top:14px">Warstwy uzbrojenia terenu (GESUT) są widoczne dopiero przy bardzo dużym przybliżeniu — podjedź blisko punktu. Dane z usług Głównego Urzędu Geodezji i Kartografii, mogą nie obejmować wszystkich powiatów.</p>`,`<button data-act="close">Zamknij</button>`);
+  showModal(`Miejsce pracy — ${locationTitle(loc)}`,`<div class="flex wrap" style="margin-bottom:14px">${pano?`<a class="nav-link" href="${esc(pano)}" target="_blank" rel="noopener noreferrer">${icon('eye')}Street View</a>`:''}</div><div id="work-map" class="map-canvas" style="height:400px;border-radius:10px"></div><div class="layer-toggles" id="work-layers">${GESUT_LAYERS.map(l=>`<label><input type="checkbox" data-layer="${esc(l.name)}"><span>${esc(l.title)}</span></label>`).join('')}</div><p class="privacy-text" style="margin-top:14px">Warstwy uzbrojenia terenu (GESUT) są widoczne dopiero przy bardzo dużym przybliżeniu — podjedź blisko punktu. Dane z usług Głównego Urzędu Geodezji i Kartografii, mogą nie obejmować wszystkich powiatów.</p>`,`<button data-act="close">Zamknij</button>`);
   drawWorkMap(loc);
 }
 function drawWorkMap(loc){
   if(!globalThis.L)return;
-  workLayers={};
+  workOrtofoto=null;workGesut=null;workGesutChecked=new Set();
   workMap=L.map('work-map',{zoomControl:true}).setView([loc.lat,loc.lng],19);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(workMap);
   L.marker([loc.lat,loc.lng],{icon:L.divIcon({className:'',html:'<div class="map-pin active">•</div>',iconSize:[32,32],iconAnchor:[16,16]})}).addTo(workMap);
-  workLayers.ortofoto=L.tileLayer.wms(SERVICES.ortofoto,{layers:'Raster',format:'image/jpeg',version:'1.3.0',maxZoom:19,attribution:'GUGiK ORTO'});
-  for(const l of GESUT_LAYERS)workLayers[l.name]=L.tileLayer.wms(SERVICES.gesut,{layers:l.name,format:'image/png',transparent:true,version:'1.3.0',maxZoom:19,attribution:'GUGiK KIUT'});
+  const ortofotoControl=L.control({position:'topleft'});
+  ortofotoControl.onAdd=()=>{
+    const div=L.DomUtil.create('div','leaflet-bar map-ortofoto-control');
+    div.innerHTML='<label><input type="checkbox" data-layer="ortofoto"><span>Ortofotomapa</span></label>';
+    L.DomEvent.disableClickPropagation(div);
+    return div;
+  };
+  ortofotoControl.addTo(workMap);
   setTimeout(()=>workMap?.invalidateSize(),100);
+}
+function toggleGesutLayer(name,checked){
+  if(checked)workGesutChecked.add(name);else workGesutChecked.delete(name);
+  const names=[...workGesutChecked].join(',');
+  if(!names){if(workGesut)workMap.removeLayer(workGesut);return;}
+  if(workGesut){workGesut.setParams({layers:names});if(!workMap.hasLayer(workGesut))workGesut.addTo(workMap);}
+  else{workGesut=L.tileLayer.wms(SERVICES.gesut,{layers:names,format:'image/png',transparent:true,version:'1.3.0',maxZoom:19,attribution:'GUGiK KIUT'});workGesut.addTo(workMap);}
+}
+function toggleOrtofotoLayer(checked){
+  if(!workOrtofoto)workOrtofoto=L.tileLayer.wms(SERVICES.ortofoto,{layers:'Raster',format:'image/jpeg',version:'1.3.0',maxZoom:19,attribution:'GUGiK ORTO'});
+  if(checked)workOrtofoto.addTo(workMap);else workMap.removeLayer(workOrtofoto);
 }
 
 let geoSelection=null;
@@ -353,7 +374,7 @@ document.addEventListener('click',async event=>{
 function drawMapAgain(){if(map){map.remove();map=null;}drawMap();}
 document.addEventListener('keydown',event=>{if((event.key==='Enter'||event.key===' ')&&event.target.id==='import-drop'){event.preventDefault();$('#excel-input').click();}});
 document.addEventListener('submit',async event=>{event.preventDefault();const form=event.target;if(busy)return;try{if(form.id==='visit-form')await saveVisit(form);if(form.id==='geo-form')await searchGeo(new FormData(form).get('query'));if(form.id==='add-job-form')await addJob(form);if(form.id==='move-form')await moveDayVisit(form.dataset.visit,Number(new FormData(form).get('day')));if(form.id==='note-form')await saveNote(form);}catch(e){toast(e.message);}});
-document.addEventListener('change',async event=>{const el=event.target;if(el.closest?.('#work-layers')){const layer=workLayers[el.dataset.layer];if(!layer||!workMap)return;if(el.checked)layer.addTo(workMap);else workMap.removeLayer(layer);return;}if(el.id==='week-picker'){if(!isoDate(el.value))return;state.settings.week=monday(el.value);state.settings.crew='';await save();}if(el.id==='crew-picker'){state.settings.crew=el.value;await save();}if(el.id==='job-filter'){filter=el.value;render();}if(el.id==='excel-input'&&el.files[0])await readExcel(el.files[0]);if(el.id==='backup-input'&&el.files[0])await readBackup(el.files[0]);});
+document.addEventListener('change',async event=>{const el=event.target;if(el.dataset.layer==='ortofoto'){if(workMap)toggleOrtofotoLayer(el.checked);return;}if(el.closest?.('#work-layers')){if(workMap)toggleGesutLayer(el.dataset.layer,el.checked);return;}if(el.id==='week-picker'){if(!isoDate(el.value))return;state.settings.week=monday(el.value);state.settings.crew='';await save();}if(el.id==='crew-picker'){state.settings.crew=el.value;await save();}if(el.id==='job-filter'){filter=el.value;render();}if(el.id==='excel-input'&&el.files[0])await readExcel(el.files[0]);if(el.id==='backup-input'&&el.files[0])await readBackup(el.files[0]);});
 let searchTimer;document.addEventListener('input',event=>{if(event.target.id==='search-jobs'){search=event.target.value;clearTimeout(searchTimer);searchTimer=setTimeout(()=>{render();const e=$('#search-jobs');if(e){e.focus();e.setSelectionRange(search.length,search.length);}},200);}});
 modal.addEventListener('cancel',e=>{if(busy)e.preventDefault();});
 window.addEventListener('online',()=>{render();toast('Połączenie przywrócone.');});window.addEventListener('offline',()=>render());

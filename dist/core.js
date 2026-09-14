@@ -180,6 +180,29 @@ export function bookingUrl(location) {
   const query=[location.label,location.city].filter(Boolean).join(', ')||(validCoords(location)?`${location.lat},${location.lng}`:'');
   return `https://www.booking.com/searchresults.pl.html?ss=${encodeURIComponent(query)}`;
 }
+// Parses the WKT the ULDK parcel lookup returns (POLYGON or MULTIPOLYGON, with an optional "SRID=n;"
+// prefix) into GeoJSON coordinates Leaflet can draw directly, holes included.
+export function parseParcelWkt(wkt) {
+  const clean=text(wkt).replace(/^SRID=\d+;/i,'');
+  const type=(clean.match(/^\s*(\w+)/)||[])[1]?.toUpperCase();
+  const ring=part=>part.trim().split(',').map(pair=>pair.trim().split(/\s+/).map(Number));
+  if(type==='POLYGON'){
+    const rings=clean.match(/\(([^()]*)\)/g)||[];
+    if(!rings.length)throw new Error('Nieznana geometria działki.');
+    return {type:'Polygon',coordinates:rings.map(r=>ring(r.slice(1,-1)))};
+  }
+  if(type==='MULTIPOLYGON'){
+    const body=clean.slice(clean.indexOf('(')+1,clean.lastIndexOf(')'));
+    const groups=[];let depth=0,start=0;
+    for(let i=0;i<body.length;i++){
+      if(body[i]==='('){if(depth===0)start=i;depth++;}
+      else if(body[i]===')'){depth--;if(depth===0)groups.push(body.slice(start,i+1));}
+    }
+    if(!groups.length)throw new Error('Nieznana geometria działki.');
+    return {type:'MultiPolygon',coordinates:groups.map(g=>(g.match(/\(([^()]*)\)/g)||[]).map(r=>ring(r.slice(1,-1))))};
+  }
+  throw new Error('Nieznana geometria działki.');
+}
 export function validateBackup(data) {
   if(!data||data.version!==VERSION||!Array.isArray(data.jobs)||!data.locations||!data.settings||!data.plans)throw new Error('To nie jest plik planu PaczkoPlan.');
   if(data.jobs.length>3000)throw new Error('Plik ma zbyt wiele zleceń.');

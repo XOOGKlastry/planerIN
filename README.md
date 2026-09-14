@@ -12,6 +12,8 @@ Aplikacja PWA dla ekipy montującej i serwisującej paczkomaty. Działa na iPhon
 
 Safari i PWA mogą mieć oddzielny zapis. Jeśli zaczynasz w Safari, zapisz kopię planu i wczytaj ją po instalacji. Plik ZIP zawiera aplikację do hostowania; na iPhonie aplikację instaluje się z adresu HTTPS, a nie otwierając HTML z ZIP.
 
+**Aktualizacje na ekranie głównym:** otwarcie ikony z ekranu głównego zwykle tylko wznawia wcześniej zamrożoną kartę, a nie ładuje ją od nowa — aplikacja teraz sama sprawdza, czy jest nowa wersja, za każdym razem, gdy wraca na pierwszy plan (nie tylko przy pełnym przeładowaniu), więc pasek „Dostępna nowa wersja” powinien pojawić się przy najbliższym powrocie do aplikacji z internetem. Jeśli mimo to go nie widać, w pełni zamknij aplikację (przeciągnij w górę w przełączniku aplikacji) i otwórz ją ponownie, albo raz otwórz ten sam adres w zwykłej karcie Safari.
+
 ## Excel
 
 Importer rozpoznaje nagłówki, niezależnie od ich kolejności. Obsługuje XLSX, XLS i CSV do 10 MB. Wczytuje arkusze z kolumną `Nazwa PM`, `Paczkomat`, `Kod paczkomatu`, `Nazwa lokalizacji` lub `Adres`.
@@ -28,7 +30,9 @@ Importer rozpoznaje nagłówki, niezależnie od ich kolejności. Obsługuje XLSX
 
 Nie ma automatycznego układania całego tygodnia ani szacowania czasu pracy — to Ty decydujesz o kolejności i podziale na dni, w całości ręcznie. Tydzień to zawsze 7 dni (Pon–Nie); nie ma osobnego wyboru dni roboczych. Dla wybranego dnia aplikacja pokazuje pozostałe zlecenia posortowane według czasu dojazdu od ostatnio dodanego przystanku (lub od bazy / miejsca noclegu, jeśli dzień jest jeszcze pusty) — najbliższy jest oznaczony „Najbliżej”. Wybierasz, klikając „Dodaj” na liście.
 
-**Mapa dnia pokazuje wszystkie punkty na raz** — te już dodane do dnia jako ponumerowane pinezki, a pozostałe (jeszcze nieprzypisane) jako pinezki z „+”. Kliknięcie pinezki „+” dodaje ją jako kolejny przystanek — dokładnie to samo, co przycisk „Dodaj” na liście, tylko wprost na mapie. Kolejność, w jakiej klikasz, jest kolejnością trasy.
+**Mapa dnia pokazuje wszystkie punkty na raz** — te już dodane do dnia jako ponumerowane pinezki, a pozostałe jako pinezki z „+” (jeszcze nieprzypisane) albo ze skrótem innego dnia (już zaplanowane gdzie indziej — kliknięcie przenosi je tutaj). **Każdy dzień tygodnia ma swój kolor** — trasa i numery na mapie są w kolorze wybranego dnia, a te same kolory widać jako pasek przy kafelku dnia u góry, więc od razu wiadomo, do którego dnia należy dana pinezka. Kliknięcie pinezki dodaje ją jako kolejny przystanek — dokładnie to samo, co przycisk „Dodaj” na liście, tylko wprost na mapie. Kolejność, w jakiej klikasz, jest kolejnością trasy.
+
+**Ostrzeżenie o bliskich punktach** — gdy dwa punkty w tygodniowej puli dzieli mniej niż 10 minut jazdy, oba dostają wyraźny czerwony znacznik z czasem i nazwą tego drugiego punktu (na liście dnia i na liście podpowiedzi). To zwykle sygnał, że warto je odwiedzić jednego dnia po kolei, albo że to w istocie ten sam adres wpisany dwa razy.
 
 **„Optymalizuj trasę”** jest zawsze widoczne na górze ekranu (obok „Policz odległości”) — układa już dodane przystanki bieżącego dnia w najkrótszą trasę od bazy (lub miejsca noclegu) przez wszystkie z nich i z powrotem, dokładnym algorytmem dla typowej liczby przystanków dziennie. Nie dodaje ani nie usuwa niczego, tylko zmienia kolejność; aktywne dopiero od 2 przystanków.
 
@@ -58,6 +62,8 @@ Przy każdym przystanku i w szczegółach zlecenia jest przycisk „Zobacz miejs
 - **Satelita (nowsze)** — ortofotomapa Głównego Urzędu Geodezji i Kartografii (usługa WMS ORTO), często bardziej aktualna dla Polski niż globalne serwisy.
 - **Google hybryda** i **Google** — kafelki satelitarne+opisy oraz zwykła mapa Google, pobierane z nieoficjalnego, ogólnodostępnego adresu `mtN.google.com/vt` (bez klucza API). Wygodne przy dwóch osobach, ale nieoficjalne — Google może to zmienić lub zablokować bez zapowiedzi; jeśli przestanie działać, użyj innego podkładu.
 
+**Działki ewidencyjne** — osobny przełącznik nad siecami uzbrojenia: włącza granice działek (usługa EGiB Głównego Urzędu Geodezji i Kartografii) i zmienia kursor na mapie, żeby było widać, że można kliknąć. Kliknięcie w dowolne miejsce na mapie podświetla na żółto działkę pod tym punktem i pokazuje jej numer ewidencyjny w dymku — przez usługę ULDK (Usługa Lokalizacji Działek Katastralnych), też prowadzoną przez GUGiK.
+
 **Sieci uzbrojenia terenu (GESUT)** — osobne przełączniki (checkboxy) pod mapą dla sieci wodociągowej, kanalizacyjnej, elektroenergetycznej, gazowej, ciepłowniczej, telekomunikacyjnej, specjalnej, niezidentyfikowanej i urządzeń, z krajowej usługi integracyjnej KIUT prowadzonej przez GUGiK. Zaznaczone sieci są pobierane jednym zapytaniem (WMS pozwala podać kilka warstw naraz), więc włączenie wszystkich naraz nie zalewa przeglądarki równoległymi żądaniami i nie zakłóca wczytywania mapy bazowej. Te warstwy są widoczne dopiero przy bardzo dużym przybliżeniu (blisko adresu, nie widoku miasta) i mogą nie obejmować wszystkich powiatów — dane pochodzą od 385 różnych podmiotów prowadzących rejestr.
 
 **Street View** — pomarańczowy przycisk z ikoną ludzika (jak Google „pegman”), żeby był od razu widoczny; zwykły odnośnik do panoramy Google Maps w danym punkcie, bez klucza API.
@@ -81,7 +87,8 @@ Offline: interfejs, lista, opisy, statusy i zapisane wyniki pozostają dostępne
 Wszystko poniżej jest bezpłatne i nie wymaga klucza ani konta:
 - Lokalizacje: publiczny endpoint InPost Points bez tokena, gdy dostępny; zapasowo wyszukiwanie adresu w Nominatim z zatwierdzeniem wyniku. Endpoint InPost może zmienić zasady dostępu; pozostają adres i ręczna pinezka.
 - Trasy i macierz: publiczny serwer demonstracyjny OSRM. Bez klucza i opłat, ale bez gwarancji dostępności.
-- Podkłady mapy „Zobacz miejsce pracy”: OpenStreetMap, Esri World Imagery, ortofotomapa i sieci uzbrojenia terenu (GESUT/KIUT) z usług WMS Głównego Urzędu Geodezji i Kartografii — wszystkie publiczne, bez klucza.
+- Podkłady mapy „Zobacz miejsce pracy”: OpenStreetMap, Esri World Imagery, ortofotomapa, działki ewidencyjne (EGiB) i sieci uzbrojenia terenu (GESUT/KIUT) z usług WMS Głównego Urzędu Geodezji i Kartografii — wszystkie publiczne, bez klucza.
+- Numer działki po kliknięciu: usługa ULDK (uldk.gugik.gov.pl), również GUGiK, publiczna i bez klucza.
 - Nawigacja i Street View: zwykłe odnośniki Google Maps, bez Google Maps Platform API i bez konta rozliczeniowego.
 - Booking.com: zwykły odnośnik wyszukiwania, bez konta i klucza.
 - Składy kruszywa: publiczny Overpass API (OpenStreetMap), plus odnośnik wyszukiwania w Google Maps.
@@ -106,7 +113,7 @@ Repozytorium zawiera workflow GitHub Pages. W Settings → Pages wybierz GitHub 
 
 ## Sprawdzenia
 
-`node --test tests/*.test.mjs` sprawdza importer, usuwanie importu (kasuje tylko swoje zlecenia i nieużywane już lokalizacje), daty, duplikaty, ranking kandydatów wg dojazdu, podsumowanie trasy dnia (w tym nocleg jako inny punkt startu), optymalizację kolejności (dokładny algorytm zgadza się z przeglądem zupełnym, honoruje nietypowy punkt startu, nigdy nie zmyśla trasy tam, gdzie jej brak), że moduł auto-rozkładu został całkowicie usunięty, reset dnia z potwierdzeniem, pięć podkładów mapy bazowej nad mapą (nie jako kontrolka Leaflet), przycisk optymalizacji jako zawsze widoczny element górnego paska, adresy URL (Google Maps/wyszukiwanie/Street View/Booking.com), kopie danych oraz że tylko darmowy OSRM liczy trasy (bez Google Distance Matrix czy zaszytego klucza). Opcjonalny test rzeczywistego Excela korzysta ze zmiennej `T38_EXCEL`; plik źródłowy nie jest częścią repozytorium. Żadne testy nie składają zleceń, nie wysyłają wiadomości ani nie wołają zewnętrznych usług na żywo.
+`node --test tests/*.test.mjs` sprawdza importer, usuwanie importu (kasuje tylko swoje zlecenia i nieużywane już lokalizacje), daty, duplikaty, ranking kandydatów wg dojazdu, podsumowanie trasy dnia (w tym nocleg jako inny punkt startu), optymalizację kolejności (dokładny algorytm zgadza się z przeglądem zupełnym, honoruje nietypowy punkt startu, nigdy nie zmyśla trasy tam, gdzie jej brak), że moduł auto-rozkładu został całkowicie usunięty, reset dnia z potwierdzeniem, pięć podkładów mapy bazowej nad mapą (nie jako kontrolka Leaflet), przycisk optymalizacji jako zawsze widoczny element górnego paska, adresy URL (Google Maps/wyszukiwanie/Street View/Booking.com), kopie danych oraz że tylko darmowy OSRM liczy trasy (bez Google Distance Matrix czy zaszytego klucza). Dochodzi do tego parsowanie geometrii działki (WKT z ULDK, z dziurami i wieloczęściowe) na GeoJSON, podpięcie przełącznika działek i identyfikacji po kliknięciu, ostrzeżenie o punktach bliższych niż 10 minut jazdy w obu listach, siedem odrębnych kolorów dnia użytych na mapie i na kafelkach, oraz że siedem kafelków dni mieści się na szerokości telefonu bez przewijania. Opcjonalny test rzeczywistego Excela korzysta ze zmiennej `T38_EXCEL`; plik źródłowy nie jest częścią repozytorium. Żadne testy nie składają zleceń, nie wysyłają wiadomości ani nie wołają zewnętrznych usług na żywo.
 
 ## Biblioteki i dane
 

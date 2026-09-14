@@ -1,6 +1,6 @@
 import {norm,validCoords,haversine,hash} from './core.js';
 
-export const SERVICES={points:'https://api-shipx-pl.easypack24.net/v1/points/',geocoder:'https://nominatim.openstreetmap.org/search',router:'https://router.project-osrm.org',overpass:'https://overpass-api.de/api/interpreter',ortofoto:'https://mapy.geoportal.gov.pl/wss/service/PZGIK/ORTO/WMS/StandardResolution',gesut:'https://integracja.gugik.gov.pl/cgi-bin/KrajowaIntegracjaUzbrojeniaTerenu'};
+export const SERVICES={points:'https://api-shipx-pl.easypack24.net/v1/points/',geocoder:'https://nominatim.openstreetmap.org/search',router:'https://router.project-osrm.org',overpass:'https://overpass-api.de/api/interpreter',ortofoto:'https://mapy.geoportal.gov.pl/wss/service/PZGIK/ORTO/WMS/StandardResolution',gesut:'https://integracja.gugik.gov.pl/cgi-bin/KrajowaIntegracjaUzbrojeniaTerenu',dzialki:'https://integracja.gugik.gov.pl/cgi-bin/KrajowaIntegracjaEwidencjiGruntow',uldk:'https://uldk.gugik.gov.pl/'};
 // GESUT lines from the national KIUT service (Główny Urząd Geodezji i Kartografii), one WMS layer per
 // network type — only rendered by the server at very close zoom (street level), same as in geoportal.gov.pl.
 export const GESUT_LAYERS=[
@@ -66,6 +66,22 @@ export async function findMaterialYards({center,radius=8000,bbox}={}){
   const query=`[out:json][timeout:25];(${clauses});out center 40;`;
   const data=await request(SERVICES.overpass,{method:'POST',timeout:30000,headers:{'Content-Type':'application/x-www-form-urlencoded'},body:`data=${encodeURIComponent(query)}`});
   return (data.elements||[]).map(el=>({id:`osm:${el.type}/${el.id}`,name:el.tags?.name||el.tags?.brand||'Skład bez nazwy',lat:el.lat??el.center?.lat,lng:el.lon??el.center?.lon,tags:el.tags||{},osmUrl:`https://www.openstreetmap.org/${el.type}/${el.id}`})).filter(p=>validCoords(p));
+}
+// Looks up the cadastral parcel under one point via ULDK (Usługa Lokalizacji Działek Katastralnych), the
+// national GUGiK service — plain text, not JSON, so it can't go through request()'s shared queue.
+export async function findParcelAt(lat,lng){
+  const url=`${SERVICES.uldk}?request=GetParcelByXY&xy=${lng.toFixed(6)},${lat.toFixed(6)},4326&result=id,geom_wkt&srid=4326`;
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);
+  let response;
+  try{response=await fetch(url,{signal:controller.signal});}
+  catch(error){if(error.name==='AbortError')throw new Error('Usługa działek nie odpowiedziała na czas.');throw error;}
+  finally{clearTimeout(timer);}
+  if(!response.ok)throw new Error(`Usługa działek odpowiedziała ${response.status}.`);
+  const lines=(await response.text()).trim().split('\n');
+  if(lines[0]!=='0')throw new Error('Brak działki ewidencyjnej w tym miejscu.');
+  const [id,wkt]=(lines[1]||'').split('|');
+  if(!id||!wkt)throw new Error('Nie udało się odczytać odpowiedzi usługi działek.');
+  return {id,wkt};
 }
 export async function fetchRoute(base,visits){
   if(!visits.length)return null;

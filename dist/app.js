@@ -1,5 +1,5 @@
-import {DAY_NAMES,JOB_TYPES,norm,text,uid,hash,isoDate,addDays,monday,today,defaultState,parseRows,mergeImport,removeImport,makeVisits,rankCandidates,routeSummary,exactRoute,validCoords,parseCoordinates,formatDuration,googleMapsUrl,googleSearchUrl,bookingUrl,streetViewUrl,haversine,validateBackup} from './core.js';
-import {resolveLocation,fetchMatrix,findMaterialYards,fetchRoute,matrixKey,SERVICES,GESUT_LAYERS} from './network.js';
+import {DAY_NAMES,JOB_TYPES,norm,text,uid,hash,isoDate,addDays,monday,today,defaultState,parseRows,mergeImport,removeImport,makeVisits,rankCandidates,routeSummary,exactRoute,validCoords,parseCoordinates,formatDuration,googleMapsUrl,googleSearchUrl,bookingUrl,streetViewUrl,haversine,validateBackup,parseParcelWkt} from './core.js';
+import {resolveLocation,fetchMatrix,findMaterialYards,fetchRoute,findParcelAt,matrixKey,SERVICES,GESUT_LAYERS} from './network.js';
 import {loadState,persistState} from './storage.js';
 
 const $=s=>document.querySelector(s),root=$('#app'),modal=$('#modal');
@@ -9,6 +9,10 @@ const icons={calendar:'M8 2v4m8-4v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 
 // A little peg-person marker (Street View "pegman" style) drawn filled, not stroked, so it reads at a
 // glance — the generic eye icon disappeared next to the other buttons.
 const pegmanSvg='<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="5.2" r="3.2" fill="currentColor"/><path d="M12 9.5c-3 0-5 4.6-5 12.5h2.3l.9-8 .8 8h2l.8-8 .9 8H15c0-7.9-2-12.5-5-12.5Z" fill="currentColor"/></svg>';
+// One accent colour per day of the week (Mon..Sun) — used for that day's route line and already-placed
+// pins on the day map, and echoed as a small marker on its tile. Matched by index to the .map-pin.dayN
+// classes in styles.css; no meaning beyond telling the seven days apart at a glance.
+const DAY_COLORS=['#2f6fed','#16a34a','#d97706','#db2777','#7c3aed','#0891b2','#b91c1c'];
 const icon=name=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${icons[name]||icons.list}"/></svg>`;
 let state=defaultState(),view='week',selectedDay=0,busy=false,map=null,miniMap=null,toastTimer,search='',filter='all',selectedVisit=null,geoCandidates=[],geoTarget=null,importPreview=null,waitingWorker=null,deferredInstall=null,cancelGeo=false,saveError=null;
 const selectedJobs=()=>state.jobs.filter(j=>j.week===state.settings.week&&(!state.settings.crew||j.crew===state.settings.crew));
@@ -54,6 +58,19 @@ function nextStopCandidates(day){
   const lastId=route.at(-1)?.id,fromIndex=lastId?vs.findIndex(v=>v.id===lastId)+1:anchor;
   return rankCandidates(fromIndex,poolIndices,cost).map(r=>({...r,visit:vs[r.index-1]}));
 }
+// Flags a visit that's suspiciously close (under 10 minutes' drive) to another one anywhere in the
+// week's pool — usually a near-duplicate address, or two points worth bundling into a single dojazd.
+function proximityWarning(visitId){
+  const {vs,cost}=baseCostContext();if(!cost)return null;
+  const i=vs.findIndex(v=>v.id===visitId)+1;if(i<=0)return null;
+  let best=null;
+  for(let j=1;j<=vs.length;j++){
+    if(j===i)continue;
+    const a=cost[i]?.[j],b=cost[j]?.[i],seconds=Math.min(Number.isFinite(a)?a:Infinity,Number.isFinite(b)?b:Infinity);
+    if(Number.isFinite(seconds)&&(!best||seconds<best.seconds))best={seconds,visit:vs[j-1]};
+  }
+  return best&&best.seconds<600?best:null;
+}
 function locationTitle(l){return [l.code,l.city].filter(Boolean).join(' · ')||l.label||'Adres';}
 function toast(message){$('#toast').textContent=message;$('#toast').classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').classList.remove('show'),6500);}
 async function save({redraw=true}={}){state.updatedAt=new Date().toISOString();try{await persistState(state);saveError=null;}catch(error){saveError=error.message;toast(error.message);}if(redraw)render();}
@@ -74,7 +91,7 @@ function render(){
 function dayTile(day){
   const r=dayRoute(day),s=dayDriving(day),overnight=!!currentPlan()?.overnight?.[day],fromSleep=day>0&&!!currentPlan()?.overnight?.[day-1];
   const sub=overnight?'Nocleg tutaj':r.length?(s.hasMissing?'Sprawdź dojazdy':`Powrót ${formatDuration(s.back)}`):'Bez wizyt';
-  return `<button class="day-tile ${day===selectedDay?'active':''} ${overnight?'overnight':''}" data-act="day" data-day="${day}"><span class="day-name">${DAY_NAMES[day].slice(0,3)}<span class="day-long">${DAY_NAMES[day].slice(3)}</span></span><span class="day-num">${addDays(state.settings.week,day).slice(8)}</span><strong>${r.length} ${r.length===1?'punkt':'pkt'}</strong><small>${fromSleep?'Z noclegu · ':''}${sub}</small></button>`;
+  return `<button class="day-tile ${day===selectedDay?'active':''} ${overnight?'overnight':''}" style="--day-color:${DAY_COLORS[day]}" data-act="day" data-day="${day}"><span class="day-name">${DAY_NAMES[day].slice(0,3)}<span class="day-long">${DAY_NAMES[day].slice(3)}</span></span><span class="day-num">${addDays(state.settings.week,day).slice(8)}</span><strong>${r.length} ${r.length===1?'punkt':'pkt'}</strong><small>${fromSleep?'Z noclegu · ':''}${sub}</small></button>`;
 }
 function renderWeek(vs,p,unready){
   if(!vs.length)return `${weekSelector()}<div class="empty-grid"><div class="panel panel-pad">${importDrop()}<div class="empty-summary"><div class="metric"><strong>01</strong><span>Importuj zlecenia</span></div><div class="metric"><strong>02</strong><span>Ustaw start</span></div><div class="metric"><strong>03</strong><span>Wybierz pierwszy przystanek</span></div></div></div><aside class="panel panel-pad aside-intro"><h2>Od Excela do wyjazdu</h2><div class="intro-step"><span>1</span><div><strong>Twój arkusz, bez przepisywania</strong><p>Kody paczkomatów, opisy i telefony zostają przy zleceniach.</p></div></div><div class="intro-step"><span>2</span><div><strong>Ty wybierasz kolejność</strong><p>Aplikacja podpowiada co jest po drodze — decyzja zawsze należy do Ciebie.</p></div></div><div class="intro-step"><span>3</span><div><strong>Jeden przycisk do Google Maps</strong><p>Wybierz następny paczkomat i ruszaj.</p></div></div><button style="margin-top:20px;width:100%" data-act="restore">${icon('file')}Wczytaj plan od kolegi</button></aside></div>`;
@@ -83,7 +100,7 @@ function renderWeek(vs,p,unready){
   const {vs:ctxVs,anchor}=dayCostContext(selectedDay);
   const anchorLocation=anchor===0?state.settings.base:ctxVs[anchor-1]?.location;
   const overnight=!!p?.overnight?.[selectedDay];
-  return `${weekSelector()}${!validCoords(state.settings.base)?notice('<strong>Skąd ruszacie?</strong>Ustaw miejsce startu i powrotu, żeby widzieć podpowiedzi tras.','<button class="small" data-act="view" data-view="settings">Ustaw start</button>'):''}${unready.length?notice(`<strong>${unready.length} ${unready.length===1?'wizyta wymaga':'wizyt wymaga'} sprawdzenia</strong>${vs.filter(v=>!validCoords(v.location)).length} bez potwierdzonej lokalizacji · ${vs.filter(v=>v.blocked).length} czeka na zgodę na wyjazd.`,`<button class="small" data-act="resolve-all">Sprawdź lokalizacje</button>`):''}${p&&!matrixValid()?notice('Zmieniły się lokalizacje lub miejsce startu. Policz odległości ponownie, aby zobaczyć aktualne podpowiedzi.','','info'):''}${!p?notice('Zlecenia są wczytane. Wybierz pierwszy przystanek poniżej albo policz odległości, żeby zobaczyć co jest po drodze.','','info'):''}<div class="day-grid seven">${ALL_DAYS.map(dayTile).join('')}</div><div class="work-area"><section class="panel list-panel"><div class="panel-title"><h2>${DAY_NAMES[selectedDay]}, ${formatDate(addDays(state.settings.week,selectedDay))}</h2><div class="flex" style="gap:8px"><span class="pill">${route.filter(v=>v.done).length}/${route.length} wykonano</span>${route.length?`<button class="small quiet" data-act="reset-day">${icon('close')}Reset dnia</button>`:''}</div></div><div class="summary"><div><span>Przystanki</span><strong>${route.length}</strong></div><div><span>W drodze między nimi</span><strong>${route.length?formatDuration(summary.driving):'—'}</strong></div><div><span>Powrót do bazy stąd</span><strong class="${summary.back>=60?'warn':''}">${route.length||anchor!==0?(summary.hasMissing?'brak danych':formatDuration(summary.back)):'—'}</strong></div></div>${route.length?`<div class="route-start"><span class="base-icon">${icon('home')}</span><div><strong>${esc(anchorLocation?.label||'Miejsce startu')}</strong><span>${anchor!==0?'Start od miejsca noclegu':'Start trasy'}</span></div></div>${route.map((v,i)=>renderStop(v,i,summary.entries.find(e=>e.visit?.id===v.id))).join('')}${renderRouteEnd(selectedDay,summary,distance,overnight,route)}`:`<div class="list-empty">${icon('calendar')}<h3>Wybierz pierwszy przystanek</h3><p>Zobacz propozycje poniżej — zaczynaj od tego, co jest najbliżej.</p></div>`}</section><aside class="panel map-panel"><div class="map-toolbar"><h3>${icon('map')} Trasa dnia</h3><button class="small quiet" data-act="fit-map">Pokaż całość</button></div><div id="map" class="map-canvas" aria-label="Mapa punktów i trasy"></div><div class="map-foot"><span>Numer punktu = kolejność na liście</span><span>${distance!==null&&route.length?`${Math.round(distance/1000)} km`:''}</span></div><div class="map-note">${route.length?'Czasy drogowe OSRM, bez bieżących korków. Google Maps wyznaczy dojazd podczas nawigacji.':'Na mapie są lokalizacje wybranego tygodnia.'}${route.length?`<button class="small" style="margin-top:10px" data-act="load-route">${icon('refresh')}Odśwież przebieg trasy</button>`:''}<button class="small" style="margin-top:10px" data-act="materials-route">${icon('map')}Znajdź składy po drodze</button></div></aside></div>${renderAddSection(selectedDay)}`;
+  return `${weekSelector()}${!validCoords(state.settings.base)?notice('<strong>Skąd ruszacie?</strong>Ustaw miejsce startu i powrotu, żeby widzieć podpowiedzi tras.','<button class="small" data-act="view" data-view="settings">Ustaw start</button>'):''}${unready.length?notice(`<strong>${unready.length} ${unready.length===1?'wizyta wymaga':'wizyt wymaga'} sprawdzenia</strong>${vs.filter(v=>!validCoords(v.location)).length} bez potwierdzonej lokalizacji · ${vs.filter(v=>v.blocked).length} czeka na zgodę na wyjazd.`,`<button class="small" data-act="resolve-all">Sprawdź lokalizacje</button>`):''}${p&&!matrixValid()?notice('Zmieniły się lokalizacje lub miejsce startu. Policz odległości ponownie, aby zobaczyć aktualne podpowiedzi.','','info'):''}${!p?notice('Zlecenia są wczytane. Wybierz pierwszy przystanek poniżej albo policz odległości, żeby zobaczyć co jest po drodze.','','info'):''}<div class="day-grid seven">${ALL_DAYS.map(dayTile).join('')}</div><div class="work-area"><section class="panel list-panel"><div class="panel-title"><h2>${DAY_NAMES[selectedDay]}, ${formatDate(addDays(state.settings.week,selectedDay))}</h2><div class="flex" style="gap:8px"><span class="pill">${route.filter(v=>v.done).length}/${route.length} wykonano</span>${route.length?`<button class="small quiet" data-act="reset-day">${icon('close')}Reset dnia</button>`:''}</div></div><div class="summary"><div><span>Przystanki</span><strong>${route.length}</strong></div><div><span>W drodze między nimi</span><strong>${route.length?formatDuration(summary.driving):'—'}</strong></div><div><span>Powrót do bazy stąd</span><strong class="${summary.back>=60?'warn':''}">${route.length||anchor!==0?(summary.hasMissing?'brak danych':formatDuration(summary.back)):'—'}</strong></div></div>${route.length?`<div class="route-start"><span class="base-icon">${icon('home')}</span><div><strong>${esc(anchorLocation?.label||'Miejsce startu')}</strong><span>${anchor!==0?'Start od miejsca noclegu':'Start trasy'}</span></div></div>${route.map((v,i)=>renderStop(v,i,summary.entries.find(e=>e.visit?.id===v.id))).join('')}${renderRouteEnd(selectedDay,summary,distance,overnight,route)}`:`<div class="list-empty">${icon('calendar')}<h3>Wybierz pierwszy przystanek</h3><p>Zobacz propozycje poniżej — zaczynaj od tego, co jest najbliżej.</p></div>`}</section><aside class="panel map-panel"><div class="map-toolbar"><h3>${icon('map')} Trasa dnia</h3><button class="small quiet" data-act="fit-map">Pokaż całość</button></div><div id="map" class="map-canvas" aria-label="Mapa punktów i trasy"></div><div class="map-foot"><span>Numer punktu = kolejność na liście</span><span>${distance!==null&&route.length?`${Math.round(distance/1000)} km`:''}</span></div><div class="map-note">Kolor trasy i numerów to ten dzień. Inne kolory pinezek pokazują dzień, na który przystanek jest już zaplanowany — kliknięcie przenosi go tutaj. ${route.length?'Czasy drogowe OSRM, bez bieżących korków. Google Maps wyznaczy dojazd podczas nawigacji.':'Na mapie są lokalizacje wybranego tygodnia.'}${route.length?`<button class="small" style="margin-top:10px" data-act="load-route">${icon('refresh')}Odśwież przebieg trasy</button>`:''}<button class="small" style="margin-top:10px" data-act="materials-route">${icon('map')}Znajdź składy po drodze</button></div></aside></div>${renderAddSection(selectedDay)}`;
 }
 function renderRouteEnd(day,summary,distance,overnight,route){
   const lastLocation=route.at(-1)?.location;
@@ -92,8 +109,8 @@ function renderRouteEnd(day,summary,distance,overnight,route){
 }
 function weekSelector(){const crews=[...new Set(state.jobs.filter(j=>j.week===state.settings.week).map(j=>j.crew).filter(Boolean))];return `<div class="toolbar between"><div class="week-control"><button class="icon quiet" data-act="week-shift" data-offset="-7" aria-label="Poprzedni tydzień">${icon('left')}</button><input aria-label="Tydzień planu" id="week-picker" type="date" value="${state.settings.week}"><button class="icon quiet" data-act="week-shift" data-offset="7" aria-label="Następny tydzień">${icon('right')}</button></div>${crews.length>1?`<select id="crew-picker" aria-label="Ekipa"><option value="">Wszystkie ekipy</option>${crews.map(c=>`<option ${state.settings.crew===c?'selected':''}>${esc(c)}</option>`).join('')}</select>`:`<span class="meta">${esc(crews[0]||'Plan na urządzeniu')}</span>`}<button class="small quiet" data-act="export">${icon('share')}Przekaż plan</button></div>`;}
 function renderStop(v,index,entry){
-  const status=v.done?'done':v.jobs.some(j=>j.status==='doing')?'doing':'todo';
-  return `<article class="stop ${status} ${selectedVisit===v.id?'selected':''}" data-id="${esc(v.id)}" draggable="true"><div class="stop-number">${status==='done'?icon('check'):index+1}</div><div class="stop-body"><div class="stop-heading"><h3>${esc(locationTitle(v.location))}</h3>${entry?(Number.isFinite(entry.travel)?`<span class="stop-time">${formatDuration(entry.travel)} dojazdu</span>`:'<span class="stop-time warn">Brak danych o dojeździe</span>'):''}</div><div class="stop-address">${esc(v.location.label)}</div><div class="tags">${[...new Set(v.jobs.map(j=>j.type))].map(type=>`<span class="tag">${esc(type)}</span>`).join('')}${v.jobs.length>1?`<span class="tag blue">${v.jobs.length} zadania · 1 dojazd</span>`:''}${v.blocked?'<span class="tag amber">Potwierdź wyjazd</span>':''}${!validCoords(v.location)?'<span class="tag amber">Sprawdź lokalizację</span>':''}${status==='doing'?'<span class="tag blue">W trakcie</span>':status==='done'?'<span class="tag green">Wykonano</span>':''}</div>${v.location.note?`<div class="note">${esc(v.location.note)}</div>`:''}<div class="stop-footer"><a class="nav-link" href="${esc(googleMapsUrl(v.location))}" target="_blank" rel="noopener noreferrer">${icon('arrow')}Prowadź</a><button class="small" data-act="visit" data-id="${esc(v.id)}">Szczegóły</button><button class="small" data-act="work-map" data-id="${esc(v.id)}">${icon('layers')}Zobacz miejsce pracy</button><button class="small" data-act="add-note" data-id="${esc(v.id)}">${icon('edit')}${v.location.note?'Notatka':'Dodaj notatkę'}</button><div class="stop-actions"><button class="move-button" data-act="move-up" data-id="${esc(v.id)}" aria-label="Przenieś ${esc(v.location.code)} wyżej">${icon('up')}</button><button class="move-button" data-act="move-down" data-id="${esc(v.id)}" aria-label="Przenieś ${esc(v.location.code)} niżej">${icon('down')}</button><button class="move-button" data-act="move-day" data-id="${esc(v.id)}" aria-label="Zmień dzień wizyty">${icon('calendar')}</button><button class="move-button" data-act="remove-stop" data-id="${esc(v.id)}" aria-label="Usuń ${esc(v.location.code)} z tego dnia">${icon('close')}</button></div></div></div></article>`;
+  const status=v.done?'done':v.jobs.some(j=>j.status==='doing')?'doing':'todo',near=proximityWarning(v.id);
+  return `<article class="stop ${status} ${selectedVisit===v.id?'selected':''}" data-id="${esc(v.id)}" draggable="true"><div class="stop-number">${status==='done'?icon('check'):index+1}</div><div class="stop-body"><div class="stop-heading"><h3>${esc(locationTitle(v.location))}</h3>${entry?(Number.isFinite(entry.travel)?`<span class="stop-time">${formatDuration(entry.travel)} dojazdu</span>`:'<span class="stop-time warn">Brak danych o dojeździe</span>'):''}</div><div class="stop-address">${esc(v.location.label)}</div><div class="tags">${[...new Set(v.jobs.map(j=>j.type))].map(type=>`<span class="tag">${esc(type)}</span>`).join('')}${v.jobs.length>1?`<span class="tag blue">${v.jobs.length} zadania · 1 dojazd</span>`:''}${near?`<span class="tag red">${formatDuration(near.seconds/60)} od ${esc(locationTitle(near.visit.location))}</span>`:''}${v.blocked?'<span class="tag amber">Potwierdź wyjazd</span>':''}${!validCoords(v.location)?'<span class="tag amber">Sprawdź lokalizację</span>':''}${status==='doing'?'<span class="tag blue">W trakcie</span>':status==='done'?'<span class="tag green">Wykonano</span>':''}</div>${v.location.note?`<div class="note">${esc(v.location.note)}</div>`:''}<div class="stop-footer"><a class="nav-link" href="${esc(googleMapsUrl(v.location))}" target="_blank" rel="noopener noreferrer">${icon('arrow')}Prowadź</a><button class="small" data-act="visit" data-id="${esc(v.id)}">Szczegóły</button><button class="small" data-act="work-map" data-id="${esc(v.id)}">${icon('layers')}Zobacz miejsce pracy</button><button class="small" data-act="add-note" data-id="${esc(v.id)}">${icon('edit')}${v.location.note?'Notatka':'Dodaj notatkę'}</button><div class="stop-actions"><button class="move-button" data-act="move-up" data-id="${esc(v.id)}" aria-label="Przenieś ${esc(v.location.code)} wyżej">${icon('up')}</button><button class="move-button" data-act="move-down" data-id="${esc(v.id)}" aria-label="Przenieś ${esc(v.location.code)} niżej">${icon('down')}</button><button class="move-button" data-act="move-day" data-id="${esc(v.id)}" aria-label="Zmień dzień wizyty">${icon('calendar')}</button><button class="move-button" data-act="remove-stop" data-id="${esc(v.id)}" aria-label="Usuń ${esc(v.location.code)} z tego dnia">${icon('close')}</button></div></div></div></article>`;
 }
 function renderCandidate(v,rank,best,fromLabel){
   const disabled=v.blocked||!validCoords(v.location);let info='';
@@ -101,6 +118,7 @@ function renderCandidate(v,rank,best,fromLabel){
     info=rank.from===null?'<span class="tag amber">Brak danych o dojeździe</span>':`<span class="tag ${best?'green':'blue'}">${best?'Najbliżej · ':''}${formatDuration(rank.from)} ${fromLabel}</span>`;
     if(rank.back!==null&&rank.back>=60)info+=`<span class="tag amber">Powrót ${formatDuration(rank.back)}</span>`;
   }
+  const near=proximityWarning(v.id);if(near)info+=`<span class="tag red">${formatDuration(near.seconds/60)} od ${esc(locationTitle(near.visit.location))}</span>`;
   return `<article class="stop candidate"><div class="stop-number">${icon('plus')}</div><div class="stop-body"><div class="stop-heading"><h3>${esc(locationTitle(v.location))}</h3></div><div class="stop-address">${esc(v.location.label)}</div><div class="tags">${[...new Set(v.jobs.map(j=>j.type))].map(type=>`<span class="tag">${esc(type)}</span>`).join('')}${info}${v.blocked?'<span class="tag amber">Potwierdź wyjazd</span>':''}${!validCoords(v.location)?'<span class="tag amber">Brak lokalizacji</span>':''}</div>${v.location.note?`<div class="note">${esc(v.location.note)}</div>`:''}<div class="stop-footer">${validCoords(v.location)?`<a class="nav-link" href="${esc(googleMapsUrl(v.location))}" target="_blank" rel="noopener noreferrer">${icon('arrow')}Prowadź</a>`:''}<button class="small" data-act="visit" data-id="${esc(v.id)}">Szczegóły</button><button class="small primary" data-act="add-stop" data-id="${esc(v.id)}" ${disabled?'disabled':''}>${icon('plus')}Dodaj</button></div></div></article>`;
 }
 function renderAddSection(day){
@@ -132,20 +150,25 @@ function drawMap(){
   const el=$('#map');if(!el||!globalThis.L)return;
   map=L.map(el,{zoomControl:true,scrollWheelZoom:false}).setView([50.35,18.7],8);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'}).addTo(map);
-  const route=dayRoute(selectedDay),routeIds=new Set(route.map(v=>v.id)),points=[];
+  const route=dayRoute(selectedDay),routeIds=new Set(route.map(v=>v.id)),points=[],dayColor=DAY_COLORS[selectedDay];
+  const dayOfVisit=new Map();
+  for(const [dayIndex,ids] of Object.entries(currentPlan()?.routes||{}))for(const id of ids||[])dayOfVisit.set(id,Number(dayIndex));
   if(validCoords(state.settings.base)){const b=state.settings.base;points.push([b.lat,b.lng]);L.marker([b.lat,b.lng],{icon:L.divIcon({className:'',html:'<div class="map-pin base">B</div>',iconSize:[32,32],iconAnchor:[16,16]})}).bindPopup(`<strong>Baza</strong><br>${esc(b.label)}`).addTo(map);}
   for(const v of currentVisits()){
     if(!validCoords(v.location))continue;
     const p=[v.location.lat,v.location.lng];points.push(p);
-    const inRoute=routeIds.has(v.id),index=inRoute?route.findIndex(r=>r.id===v.id)+1:null;
-    const marker=L.marker(p,{icon:L.divIcon({className:'',html:`<div class="map-pin ${inRoute?'':'candidate'} ${v.blocked?'pending':''} ${v.id===selectedVisit?'active':''}">${inRoute?index:'+'}</div>`,iconSize:[32,32],iconAnchor:[16,16]})}).addTo(map);
-    marker.bindPopup(`<strong>${esc(locationTitle(v.location))}</strong><br>${esc(v.location.label)}<br>${inRoute?'':'Kliknij pinezkę, żeby dodać jako kolejny przystanek.<br>'}<a href="${esc(googleMapsUrl(v.location))}" target="_blank" rel="noopener noreferrer">Google Maps</a>`);
+    const inRoute=routeIds.has(v.id),otherDay=inRoute?undefined:dayOfVisit.get(v.id),index=inRoute?route.findIndex(r=>r.id===v.id)+1:null;
+    const dayClass=inRoute?`day${selectedDay}`:otherDay!==undefined?`day${otherDay}`:'candidate';
+    const label=inRoute?index:otherDay!==undefined?DAY_NAMES[otherDay].slice(0,2):'+';
+    const marker=L.marker(p,{icon:L.divIcon({className:'',html:`<div class="map-pin ${dayClass} ${v.blocked?'pending':''} ${v.id===selectedVisit?'active':''}">${label}</div>`,iconSize:[32,32],iconAnchor:[16,16]})}).addTo(map);
+    const moveNote=otherDay!==undefined?`Zaplanowane na ${DAY_NAMES[otherDay]}. Kliknij, żeby przenieść na ${DAY_NAMES[selectedDay]}.<br>`:'Kliknij pinezkę, żeby dodać jako kolejny przystanek.<br>';
+    marker.bindPopup(`<strong>${esc(locationTitle(v.location))}</strong><br>${esc(v.location.label)}<br>${inRoute?'':moveNote}<a href="${esc(googleMapsUrl(v.location))}" target="_blank" rel="noopener noreferrer">Google Maps</a>`);
     marker.on('click',async()=>{
       if(inRoute){selectedVisit=v.id;document.querySelectorAll('.stop').forEach(c=>c.classList.toggle('selected',c.dataset.id===v.id));return;}
       if(await addStop(selectedDay,v.id)){toast('Przystanek dodany.');loadDayRoute();}
     });
   }
-  const geometry=currentPlan()?.geometries?.[routeKey(state.settings.base,route)];if(geometry?.geometry)L.geoJSON(geometry.geometry,{style:{color:'#194961',weight:5,opacity:.85}}).addTo(map);
+  const geometry=currentPlan()?.geometries?.[routeKey(state.settings.base,route)];if(geometry?.geometry)L.geoJSON(geometry.geometry,{style:{color:dayColor,weight:5,opacity:.85}}).addTo(map);
   if(points.length)map.fitBounds(points,{padding:[35,35],maxZoom:15});setTimeout(()=>map?.invalidateSize(),100);
 }
 async function readExcel(file){
@@ -320,7 +343,7 @@ function makeBaseTileLayer(id){
   if(id==='google')return L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',{subdomains:['mt0','mt1','mt2','mt3'],maxZoom:20,attribution:'Google (nieoficjalne kafelki)'});
   return L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'});
 }
-let workMap=null,workBaseLayer=null,workBaseId='osm',workGesut=null,workGesutChecked=new Set();
+let workMap=null,workBaseLayer=null,workBaseId='osm',workGesut=null,workGesutChecked=new Set(),workParcelsOn=false,workParcelsLayer=null,workParcelHighlight=null;
 // A closer look at one address: a choice of base map, optional GESUT utility-line overlays
 // (electric/gas/water/sewage/…), plus a plain link out to Street View. All free, no key anywhere.
 // The GESUT lines are requested as ONE WMS layer with a comma-joined LAYERS param (updated via
@@ -331,15 +354,27 @@ let workLoc=null;
 function showWorkMap(id){
   const v=currentVisits().find(v=>v.id===id);if(!v||!validCoords(v.location))return toast('Najpierw ustal lokalizację punktu.');
   const loc=v.location,pano=streetViewUrl(loc);
-  showModal(`Miejsce pracy — ${locationTitle(loc)}`,`${pano?`<a class="nav-link streetview-link" href="${esc(pano)}" target="_blank" rel="noopener noreferrer" style="margin-bottom:14px">${pegmanSvg}Street View</a>`:''}<div class="map-base-picker"><div class="map-base-title">Mapa bazowa</div><div class="map-base-row">${BASE_LAYERS.map(b=>`<button type="button" class="map-base-thumb ${b.id===workBaseId?'active':''}" data-act="base-layer" data-base="${b.id}" style="background-image:url('${esc(baseLayerThumbUrl(b.id,loc.lat,loc.lng))}')"><span>${esc(b.label)}</span><small>${esc(b.sub)}</small></button>`).join('')}</div></div><div id="work-map" class="map-canvas" style="height:400px;border-radius:10px;margin-top:12px"></div><div class="layer-toggles" id="work-layers">${GESUT_LAYERS.map(l=>`<label><input type="checkbox" data-layer="${esc(l.name)}"><span>${esc(l.title)}</span></label>`).join('')}</div><p class="privacy-text" style="margin-top:14px">Warstwy uzbrojenia terenu (GESUT) są widoczne dopiero przy bardzo dużym przybliżeniu — podjedź blisko punktu. Dane z usług Głównego Urzędu Geodezji i Kartografii, mogą nie obejmować wszystkich powiatów. Podkłady Google to nieoficjalne kafelki bez klucza — mogą przestać działać bez zapowiedzi.</p>`,`<button data-act="close">Zamknij</button>`);
+  showModal(`Miejsce pracy — ${locationTitle(loc)}`,`${pano?`<a class="nav-link streetview-link" href="${esc(pano)}" target="_blank" rel="noopener noreferrer" style="margin-bottom:14px">${pegmanSvg}Street View</a>`:''}<div class="map-base-picker"><div class="map-base-title">Mapa bazowa</div><div class="map-base-row">${BASE_LAYERS.map(b=>`<button type="button" class="map-base-thumb ${b.id===workBaseId?'active':''}" data-act="base-layer" data-base="${b.id}" style="background-image:url('${esc(baseLayerThumbUrl(b.id,loc.lat,loc.lng))}')"><span>${esc(b.label)}</span><small>${esc(b.sub)}</small></button>`).join('')}</div></div><div id="work-map" class="map-canvas" style="height:400px;border-radius:10px;margin-top:12px"></div><label class="parcel-toggle" id="work-parcels"><input type="checkbox" data-parcels="1"><span>${icon('layers')}Działki ewidencyjne — kliknij mapę po włączeniu, żeby zobaczyć numer</span></label><div class="layer-toggles" id="work-layers">${GESUT_LAYERS.map(l=>`<label><input type="checkbox" data-layer="${esc(l.name)}"><span>${esc(l.title)}</span></label>`).join('')}</div><p class="privacy-text" style="margin-top:14px">Warstwy uzbrojenia terenu (GESUT) są widoczne dopiero przy bardzo dużym przybliżeniu — podjedź blisko punktu. Granice działek i ich numery pochodzą z usług ewidencji gruntów (EGiB/ULDK), a linie mediów z Krajowej Integracji Uzbrojenia Terenu — obie z Głównego Urzędu Geodezji i Kartografii i mogą nie obejmować wszystkich powiatów. Podkłady Google to nieoficjalne kafelki bez klucza — mogą przestać działać bez zapowiedzi.</p>`,`<button data-act="close">Zamknij</button>`);
   drawWorkMap(loc);
 }
 function drawWorkMap(loc){
   if(!globalThis.L)return;
-  workLoc=loc;workGesut=null;workGesutChecked=new Set();workBaseId='osm';
+  workLoc=loc;workGesut=null;workGesutChecked=new Set();workBaseId='osm';workParcelsOn=false;workParcelsLayer=null;workParcelHighlight=null;
   workMap=L.map('work-map',{zoomControl:true}).setView([loc.lat,loc.lng],19);
   workBaseLayer=makeBaseTileLayer(workBaseId).addTo(workMap);
   L.marker([loc.lat,loc.lng],{icon:L.divIcon({className:'',html:'<div class="map-pin active">•</div>',iconSize:[32,32],iconAnchor:[16,16]})}).addTo(workMap);
+  // Parcel identification: only wired up when the "Działki" checkbox is on, so a stray click on the
+  // work map otherwise does nothing.
+  workMap.on('click',async e=>{
+    if(!workParcelsOn)return;
+    try{
+      const {id,wkt}=await findParcelAt(e.latlng.lat,e.latlng.lng);
+      const geo=parseParcelWkt(wkt);
+      if(workParcelHighlight)workMap.removeLayer(workParcelHighlight);
+      workParcelHighlight=L.geoJSON(geo,{style:{color:'#ffcf30',weight:3,fillColor:'#ffcf30',fillOpacity:.25}}).addTo(workMap);
+      workParcelHighlight.bindPopup(`<strong>Działka</strong><br>${esc(id)}`).openPopup(e.latlng);
+    }catch(error){toast(error.message||'Nie udało się sprawdzić działki w tym miejscu.');}
+  });
   setTimeout(()=>workMap?.invalidateSize(),100);
 }
 function setWorkBaseLayer(id){
@@ -348,7 +383,9 @@ function setWorkBaseLayer(id){
   workMap.removeLayer(workBaseLayer);
   workBaseLayer=makeBaseTileLayer(id).addTo(workMap);
   workBaseLayer.bringToBack();
+  if(workParcelsLayer)workParcelsLayer.bringToFront();
   if(workGesut)workGesut.bringToFront();
+  if(workParcelHighlight)workParcelHighlight.bringToFront();
   document.querySelectorAll('[data-act="base-layer"]').forEach(b=>b.classList.toggle('active',b.dataset.base===id));
 }
 function toggleGesutLayer(name,checked){
@@ -357,6 +394,21 @@ function toggleGesutLayer(name,checked){
   if(!names){if(workGesut)workMap.removeLayer(workGesut);return;}
   if(workGesut){workGesut.setParams({layers:names});if(!workMap.hasLayer(workGesut))workGesut.addTo(workMap);}
   else{workGesut=L.tileLayer.wms(SERVICES.gesut,{layers:names,format:'image/png',transparent:true,version:'1.3.0',maxZoom:19,attribution:'GUGiK KIUT'});workGesut.addTo(workMap);}
+}
+// One combined WMS layer for parcel boundaries (like GESUT above); the parcel number itself only shows
+// up on click, via ULDK — a raster label layer at every zoom would just add clutter to a plain toggle.
+function toggleParcelsLayer(on){
+  workParcelsOn=on;
+  if(!workMap)return;
+  workMap.getContainer().classList.toggle('parcels-active',on);
+  if(!on){
+    if(workParcelsLayer){workMap.removeLayer(workParcelsLayer);workParcelsLayer=null;}
+    if(workParcelHighlight){workMap.removeLayer(workParcelHighlight);workParcelHighlight=null;}
+    return;
+  }
+  workParcelsLayer=L.tileLayer.wms(SERVICES.dzialki,{layers:'dzialki',format:'image/png',transparent:true,version:'1.3.0',maxZoom:19,attribution:'GUGiK EGiB'});
+  workParcelsLayer.addTo(workMap);
+  if(workGesut)workGesut.bringToFront();
 }
 
 let geoSelection=null;
@@ -437,7 +489,7 @@ document.addEventListener('click',async event=>{
 function drawMapAgain(){if(map){map.remove();map=null;}drawMap();}
 document.addEventListener('keydown',event=>{if((event.key==='Enter'||event.key===' ')&&event.target.id==='import-drop'){event.preventDefault();$('#excel-input').click();}});
 document.addEventListener('submit',async event=>{event.preventDefault();const form=event.target;if(busy)return;try{if(form.id==='visit-form')await saveVisit(form);if(form.id==='geo-form')await searchGeo(new FormData(form).get('query'));if(form.id==='add-job-form')await addJob(form);if(form.id==='move-form')await moveDayVisit(form.dataset.visit,Number(new FormData(form).get('day')));if(form.id==='note-form')await saveNote(form);}catch(e){toast(e.message);}});
-document.addEventListener('change',async event=>{const el=event.target;if(el.closest?.('#work-layers')){if(workMap)toggleGesutLayer(el.dataset.layer,el.checked);return;}if(el.id==='week-picker'){if(!isoDate(el.value))return;state.settings.week=monday(el.value);state.settings.crew='';await save();}if(el.id==='crew-picker'){state.settings.crew=el.value;await save();}if(el.id==='job-filter'){filter=el.value;render();}if(el.id==='excel-input'&&el.files[0])await readExcel(el.files[0]);if(el.id==='backup-input'&&el.files[0])await readBackup(el.files[0]);});
+document.addEventListener('change',async event=>{const el=event.target;if(el.dataset.parcels!==undefined){if(workMap)toggleParcelsLayer(el.checked);return;}if(el.closest?.('#work-layers')){if(workMap)toggleGesutLayer(el.dataset.layer,el.checked);return;}if(el.id==='week-picker'){if(!isoDate(el.value))return;state.settings.week=monday(el.value);state.settings.crew='';await save();}if(el.id==='crew-picker'){state.settings.crew=el.value;await save();}if(el.id==='job-filter'){filter=el.value;render();}if(el.id==='excel-input'&&el.files[0])await readExcel(el.files[0]);if(el.id==='backup-input'&&el.files[0])await readBackup(el.files[0]);});
 let searchTimer;document.addEventListener('input',event=>{if(event.target.id==='search-jobs'){search=event.target.value;clearTimeout(searchTimer);searchTimer=setTimeout(()=>{render();const e=$('#search-jobs');if(e){e.focus();e.setSelectionRange(search.length,search.length);}},200);}});
 modal.addEventListener('cancel',e=>{if(busy)e.preventDefault();});
 window.addEventListener('online',()=>{render();toast('Połączenie przywrócone.');});window.addEventListener('offline',()=>render());
@@ -445,7 +497,15 @@ window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();def
 try{const saved=await loadState();if(saved)state=validateBackup(saved);}catch(error){saveError=error.message;}
 selectedDay=(new Date().getDay()+6)%7;render();
 if('serviceWorker'in navigator&&location.protocol!=='file:'){
-  navigator.serviceWorker.register('./sw.js').then(reg=>{if(reg.waiting){waitingWorker=reg.waiting;render();}reg.addEventListener('updatefound',()=>{const worker=reg.installing;worker?.addEventListener('statechange',()=>{if(worker.state==='installed'&&navigator.serviceWorker.controller){waitingWorker=worker;render();}});});}).catch(()=>toast('Nie udało się przygotować aplikacji do pracy offline. Otwórz stronę ponownie z internetem.'));
+  navigator.serviceWorker.register('./sw.js').then(reg=>{
+    if(reg.waiting){waitingWorker=reg.waiting;render();}
+    reg.addEventListener('updatefound',()=>{const worker=reg.installing;worker?.addEventListener('statechange',()=>{if(worker.state==='installed'&&navigator.serviceWorker.controller){waitingWorker=worker;render();}});});
+    // A home-screen PWA is usually "reopened" by the OS resuming a frozen tab, not by a real page load —
+    // register() above then never re-runs, so it alone would miss updates for days. Re-checking whenever
+    // the app comes back to the foreground catches the version pushed while it was in the background.
+    document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')reg.update().catch(()=>{});});
+    window.addEventListener('focus',()=>reg.update().catch(()=>{}));
+  }).catch(()=>toast('Nie udało się przygotować aplikacji do pracy offline. Otwórz stronę ponownie z internetem.'));
   let refreshing=false;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!refreshing&&waitingWorker){refreshing=true;location.reload();}});
 }
 if(navigator.storage?.persist)navigator.storage.persist().catch(()=>{});

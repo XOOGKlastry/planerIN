@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import {parseRows,mergeImport,removeImport,defaultState,makeVisits,monday,isoDate,routeCost,improveRoute,exactRoute,rankCandidates,routeSummary,googleMapsUrl,googleSearchUrl,bookingUrl,streetViewUrl,validateBackup,parseCoordinates} from '../dist/core.js';
+import {parseRows,mergeImport,removeImport,defaultState,makeVisits,monday,isoDate,routeCost,improveRoute,exactRoute,rankCandidates,routeSummary,googleMapsUrl,googleSearchUrl,bookingUrl,streetViewUrl,validateBackup,parseCoordinates,parseParcelWkt} from '../dist/core.js';
 const headers=['Data','Nazwa PM','Nazwa lokalizacji','Miasto','Zaplanowane prace','Podłoże','Zgłoszenie','Miejsce','Uwagi Global','Czas [min]'];
 const rows=[headers,['2026-09-14','TEST01M','Sklep Opole Testowa 1','Opole','Serwis','Opis A','Z1','','',60],['2026-09-14','TEST01M','Sklep Opole Testowa 1','Opole','Pomiary','Opis B','Z2','','',45],['2026-09-14','TEST02M','Sklep Opole Testowa 2','Opole','Pomiary','Opis C','','M2','nie jechać bez potwierdzenia','']];
 test('dates are calendar dates, week starts Monday',()=>{assert.equal(monday('2026-09-20'),'2026-09-14');assert.equal(monday('2026-09-14'),'2026-09-14');assert.equal(isoDate('14.09.2026'),'2026-09-14');assert.equal(isoDate('31.02.2026'),null);});
@@ -107,5 +107,17 @@ test('default settings have no day-of-week picker and no Google API key field',(
   const s=defaultState().settings;
   assert.ok(!('days' in s));
   assert.ok(!('googleApiKey' in s));
+});
+test('parcel WKT (as returned by ULDK) parses into GeoJSON, holes and SRID prefix included',()=>{
+  const withHole=parseParcelWkt('SRID=4326;POLYGON((18.1 50.1,18.2 50.1,18.2 50.2,18.1 50.2,18.1 50.1),(18.14 50.14,18.16 50.14,18.16 50.16,18.14 50.14))');
+  assert.equal(withHole.type,'Polygon');
+  assert.equal(withHole.coordinates.length,2);
+  assert.deepEqual(withHole.coordinates[0][0],[18.1,50.1]);
+  assert.equal(withHole.coordinates[1].length,4);
+  const multi=parseParcelWkt('MULTIPOLYGON(((18.1 50.1,18.2 50.1,18.2 50.2,18.1 50.1)),((19.1 51.1,19.2 51.1,19.2 51.2,19.1 51.1)))');
+  assert.equal(multi.type,'MultiPolygon');
+  assert.equal(multi.coordinates.length,2);
+  assert.deepEqual(multi.coordinates[1][0][0],[19.1,51.1]);
+  assert.throws(()=>parseParcelWkt('POINT(18.1 50.1)'));
 });
 test('real T38 workbook has 20 jobs, 19 locations and 2 visit restrictions', {skip:!process.env.T38_EXCEL},()=>{const context={console,Buffer,Uint8Array,ArrayBuffer,Date};vm.createContext(context);vm.runInContext(fs.readFileSync(new URL('../dist/vendor/xlsx.full.min.js',import.meta.url),'utf8'),context);const XLSX=context.XLSX;const w=XLSX.read(fs.readFileSync(process.env.T38_EXCEL),{type:'buffer'});const p=parseRows(XLSX.utils.sheet_to_json(w.Sheets[w.SheetNames[0]],{header:1,defval:null,raw:true}),{XLSX});assert.equal(p.jobs.length,20);assert.equal(Object.keys(p.locations).length,19);assert.equal(makeVisits(p.jobs,p.locations).length,19);assert.equal(p.jobs.filter(j=>j.requiresConfirmation).length,2);assert.equal(p.jobs.filter(j=>!j.ticket).length,6);assert.deepEqual([...new Set(p.jobs.map(j=>j.week))],['2026-09-14']);assert.equal(p.jobs.filter(j=>j.locationId==='pm:SIED01M').length,2);});

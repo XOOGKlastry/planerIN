@@ -7,9 +7,11 @@
 5. Wybierz **Importuj Excel** i plik z aplikacji Pliki.
 6. W Ustawieniach wpisz bazę — miejsce startu i codziennego powrotu.
 7. Naciśnij **Policz odległości**, żeby zobaczyć podpowiedzi „co jest po drodze” (domyślnie darmowy OSRM).
-8. Na każdy dzień sam wybierz pierwszy przystanek — z podpowiedzianej listy albo klikając pinezkę „+” wprost na mapie — a potem kolejne w kolejności klikania/dodawania. Na górze ekranu, zawsze widoczny, jest przycisk **Optymalizuj trasę** — układa już dodane przystanki w najkrótszą kolejność (aktywny od 2 przystanków). Przy nagłówku dnia jest **Reset dnia** (usuwa wszystkie przystanki z dnia, po potwierdzeniu). Przycisk **Prowadź** otwiera Google Maps.
+8. Na każdy dzień sam wybierz pierwszy przystanek — z podpowiedzianej listy albo klikając pinezkę wprost na mapie — a potem kolejne w kolejności klikania/dodawania. Każdy dzień ma na mapie swój kolor (widać go też na kafelku dnia), więc od razu wiadomo, do którego dnia należy dana pinezka; kliknięcie pinezki innego dnia przenosi ją na dzień, który akurat oglądasz. Na górze ekranu, zawsze widoczny, jest przycisk **Optymalizuj trasę** — układa już dodane przystanki w najkrótszą kolejność (aktywny od 2 przystanków). Przy nagłówku dnia jest **Reset dnia** (usuwa wszystkie przystanki z dnia, po potwierdzeniu). Przycisk **Prowadź** otwiera Google Maps. Gdy dwa punkty w tygodniu dzieli mniej niż 10 minut jazdy, oba dostają czerwone ostrzeżenie z nazwą tego drugiego punktu.
 
 Nie ma ustawiania przerw ani wyboru dni roboczych — tydzień to zawsze 7 dni. Bez płatności ani konta rozliczeniowego — trasy zawsze liczy darmowy OSRM.
+
+**Aktualizacje:** aplikacja sama sprawdza nową wersję, gdy wraca na ekran (np. po przełączeniu z innej aplikacji), więc zwykle wystarczy mieć internet i chwilę poczekać, aż na górze pojawi się pasek „Dostępna nowa wersja”. Jeśli mimo to go nie widać, w pełni zamknij PaczkoPlan (przeciągnij w górę w przełączniku aplikacji) i otwórz ikonę ponownie.
 
 ## Nocleg i składy kruszywa
 
@@ -17,7 +19,9 @@ Przy ostatnim przystanku dnia jest przycisk „Nocleg tutaj zamiast powrotu” �
 
 ## Zobacz miejsce pracy i notatki
 
-Przy każdym przystanku jest przycisk „Zobacz miejsce pracy” — mapa z wyborem podkładu nad samą mapą (Ulice, dwa warianty satelitarne — szybszy Esri i nowszy GUGiK, oraz Google i Google hybryda) i sieciami uzbrojenia terenu (prąd, gaz, wodociąg, kanalizacja i inne, z rejestru GESUT) plus pomarańczowy przycisk Street View. Zamiast przycisku „Start” jest „Dodaj notatkę” — notatka od razu pokazuje się przy tym punkcie na liście.
+Przy każdym przystanku jest przycisk „Zobacz miejsce pracy” — mapa z wyborem podkładu nad samą mapą (Ulice, dwa warianty satelitarne — szybszy Esri i nowszy GUGiK, oraz Google i Google hybryda), przełącznikiem działek ewidencyjnych i sieciami uzbrojenia terenu (prąd, gaz, wodociąg, kanalizacja i inne, z rejestru GESUT) plus pomarańczowy przycisk Street View. Zamiast przycisku „Start” jest „Dodaj notatkę” — notatka od razu pokazuje się przy tym punkcie na liście.
+
+Po włączeniu działek kursor na mapie zmienia się, żeby było widać, że można kliknąć — kliknięcie podświetla na żółto działkę pod tym punktem i pokazuje jej numer w dymku.
 
 ## Usuwanie importu
 

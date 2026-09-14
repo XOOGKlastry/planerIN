@@ -17,3 +17,39 @@ test('base layer picker sits above the map as plain HTML, not floating on top of
 test('the auto-distribute module has been removed entirely',()=>{const app=fs.readFileSync(path.join(root,'app.js'),'utf8');const core=fs.readFileSync(path.join(root,'core.js'),'utf8');assert.doesNotMatch(app+core,/autoDistribute|auto-distribute|Zaproponuj rozkład/);});
 test('optimize-route is a primary, always-visible top action for the week view',()=>{const app=fs.readFileSync(path.join(root,'app.js'),'utf8');const topActionsIdx=app.indexOf("view==='week'?`<div class=\"top-actions\">");const topActionsBlock=app.slice(topActionsIdx,topActionsIdx+700);assert.match(topActionsBlock,/data-act="optimize-day"/);assert.match(topActionsBlock,/class="primary" data-act="optimize-day"/);});
 test('an entire import can be deleted, with confirmation, removing only its own jobs',()=>{const app=fs.readFileSync(path.join(root,'app.js'),'utf8');assert.match(app,/case 'delete-import':await deleteImport\(id\)/);const fn=app.slice(app.indexOf('async function deleteImport'),app.indexOf('async function deleteImport')+400);assert.match(fn,/confirm\(/);const core=fs.readFileSync(path.join(root,'core.js'),'utf8');assert.match(core,/export function removeImport/);});
+test('parcels (działki) can be toggled on the work map, identified by click via ULDK, with a distinct base layer for boundaries',()=>{
+  const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
+  const network=fs.readFileSync(path.join(root,'network.js'),'utf8');
+  const core=fs.readFileSync(path.join(root,'core.js'),'utf8');
+  assert.match(app,/data-parcels="1"/);
+  assert.match(app,/function toggleParcelsLayer/);
+  assert.match(app,/workMap\.on\('click'/);
+  assert.match(network,/export async function findParcelAt/);
+  assert.match(core,/export function parseParcelWkt/);
+});
+test('a visit under 10 minutes from another gets a very visible proximity warning, in both the day list and the candidate list',()=>{
+  const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
+  assert.match(app,/function proximityWarning/);
+  const seconds=app.match(/return best&&best\.seconds<(\d+)\?best:null/);
+  assert.ok(seconds&&Number(seconds[1])===600,'threshold must be 10 minutes (600s)');
+  const stopFn=app.slice(app.indexOf('function renderStop'),app.indexOf('function renderCandidate'));
+  const candidateFn=app.slice(app.indexOf('function renderCandidate'),app.indexOf('function renderAddSection'));
+  assert.match(stopFn,/near\?`<span class="tag red">/);
+  assert.match(candidateFn,/tag red/);
+});
+test('each day of the week has its own colour, used for the map route/pins and echoed on its tile',()=>{
+  const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
+  const match=app.match(/const DAY_COLORS=\[([^\]]+)\]/);
+  assert.ok(match);
+  const colors=match[1].split(',').map(s=>s.trim().replace(/'/g,''));
+  assert.equal(colors.length,7);
+  assert.equal(new Set(colors).size,7,'all seven day colours must be distinct');
+  assert.match(app,/--day-color:\$\{DAY_COLORS\[day\]\}/);
+  const styles=fs.readFileSync(path.join(root,'styles.css'),'utf8');
+  for(let i=0;i<7;i++)assert.match(styles,new RegExp(`\\.map-pin\\.day${i}\\{`));
+});
+test('the seven day tiles fit a phone width without needing a horizontal scroll',()=>{
+  const styles=fs.readFileSync(path.join(root,'styles.css'),'utf8');
+  const narrow=styles.slice(styles.lastIndexOf('@media(max-width:650px)'));
+  assert.match(narrow,/\.day-grid\.seven\{grid-template-columns:repeat\(7,minmax\(0,1fr\)\);overflow:visible\}/);
+});

@@ -50,7 +50,7 @@ export function parseCoordinates(value) {
   const p={lat:+match[1],lng:+match[2]}; return validCoords(p) ? p : null;
 }
 export function defaultState() {
-  return {version:VERSION,jobs:[],locations:{},plans:{},imports:[],settings:{week:monday(today()),crew:'',base:null,googleApiKey:''},updatedAt:null};
+  return {version:VERSION,jobs:[],locations:{},plans:{},imports:[],settings:{week:monday(today()),crew:'',base:null},updatedAt:null};
 }
 export function parseRows(rows, {fileName='Import',sheetName='Arkusz',XLSX,defaultWeek=monday(today())}={}) {
   let headerIndex=rows.findIndex(r=>r.some(c=>['nazwa pm','paczkomat','kod paczkomatu','adres','nazwa lokalizacji'].includes(norm(c))));
@@ -158,6 +158,10 @@ export function googleMapsUrl(location,base) {
   const params=new URLSearchParams({api:'1',destination,travelmode:'driving',dir_action:'navigate'});
   if(base&&validCoords(base))params.set('origin',`${base.lat},${base.lng}`);
   return `https://www.google.com/maps/dir/?${params}`;
+}
+export function streetViewUrl(location) {
+  if(!validCoords(location))return null;
+  return `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${location.lat},${location.lng}`;
 }
 export function googleSearchUrl(query, near) {
   const url=`https://www.google.com/maps/search/${encodeURIComponent(query)}`;

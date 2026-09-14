@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import {parseRows,mergeImport,defaultState,makeVisits,monday,isoDate,routeCost,rankCandidates,routeSummary,autoDistribute,googleMapsUrl,googleSearchUrl,bookingUrl,validateBackup,parseCoordinates} from '../dist/core.js';
+import {parseRows,mergeImport,defaultState,makeVisits,monday,isoDate,routeCost,rankCandidates,routeSummary,autoDistribute,googleMapsUrl,googleSearchUrl,bookingUrl,streetViewUrl,validateBackup,parseCoordinates} from '../dist/core.js';
 const headers=['Data','Nazwa PM','Nazwa lokalizacji','Miasto','Zaplanowane prace','Podłoże','Zgłoszenie','Miejsce','Uwagi Global','Czas [min]'];
 const rows=[headers,['2026-09-14','TEST01M','Sklep Opole Testowa 1','Opole','Serwis','Opis A','Z1','','',60],['2026-09-14','TEST01M','Sklep Opole Testowa 1','Opole','Pomiary','Opis B','Z2','','',45],['2026-09-14','TEST02M','Sklep Opole Testowa 2','Opole','Pomiary','Opis C','','M2','nie jechać bez potwierdzenia','']];
 test('dates are calendar dates, week starts Monday',()=>{assert.equal(monday('2026-09-20'),'2026-09-14');assert.equal(monday('2026-09-14'),'2026-09-14');assert.equal(isoDate('14.09.2026'),'2026-09-14');assert.equal(isoDate('31.02.2026'),null);});
@@ -58,12 +58,14 @@ test('autoDistribute never overwrites a stop already placed by hand',()=>{
   assert.deepEqual(routes[0][0],2);
   assert.ok(routes[0].includes(2));
 });
-test('Google Maps and search URLs use coordinates and encode free text',()=>{
+test('Google Maps, search and Street View URLs use coordinates and encode free text',()=>{
   assert.equal(new URL(googleMapsUrl({lat:50.1,lng:18.2})).searchParams.get('destination'),'50.1,18.2');
   assert.match(googleMapsUrl({label:'Łódź, A & B'}),/^https:\/\/www.google.com\/maps\/dir/);
   assert.equal(parseCoordinates('50.123, 18.456').lat,50.123);
   assert.match(googleSearchUrl('skład kruszywa',{lat:50.1,lng:18.2}),/maps\/search\/sk%C5%82ad/);
   assert.match(bookingUrl({label:'Rynek 1',city:'Opole'}),/^https:\/\/www\.booking\.com\/searchresults\.pl\.html\?ss=/);
+  assert.equal(streetViewUrl({lat:50.1,lng:18.2}),'https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=50.1,18.2');
+  assert.equal(streetViewUrl({label:'no coords'}),null);
 });
 test('backup validation rejects bad structure and job references, accepts a fresh state',()=>{
   assert.throws(()=>validateBackup({...defaultState(),jobs:[{id:'x'}]}));
@@ -74,9 +76,9 @@ test('backup validation rejects a route holding a raw matrix index instead of a 
   const bad={...defaultState(),plans:{x:{routes:{0:[2]}}}};
   assert.throws(()=>validateBackup(bad));
 });
-test('default settings have no day-of-week picker and an empty Google key slot',()=>{
+test('default settings have no day-of-week picker and no Google API key field',()=>{
   const s=defaultState().settings;
   assert.ok(!('days' in s));
-  assert.equal(s.googleApiKey,'');
+  assert.ok(!('googleApiKey' in s));
 });
 test('real T38 workbook has 20 jobs, 19 locations and 2 visit restrictions', {skip:!process.env.T38_EXCEL},()=>{const context={console,Buffer,Uint8Array,ArrayBuffer,Date};vm.createContext(context);vm.runInContext(fs.readFileSync(new URL('../dist/vendor/xlsx.full.min.js',import.meta.url),'utf8'),context);const XLSX=context.XLSX;const w=XLSX.read(fs.readFileSync(process.env.T38_EXCEL),{type:'buffer'});const p=parseRows(XLSX.utils.sheet_to_json(w.Sheets[w.SheetNames[0]],{header:1,defval:null,raw:true}),{XLSX});assert.equal(p.jobs.length,20);assert.equal(Object.keys(p.locations).length,19);assert.equal(makeVisits(p.jobs,p.locations).length,19);assert.equal(p.jobs.filter(j=>j.requiresConfirmation).length,2);assert.equal(p.jobs.filter(j=>!j.ticket).length,6);assert.deepEqual([...new Set(p.jobs.map(j=>j.week))],['2026-09-14']);assert.equal(p.jobs.filter(j=>j.locationId==='pm:SIED01M').length,2);});

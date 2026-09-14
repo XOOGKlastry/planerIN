@@ -9,11 +9,15 @@
 7. Naciśnij **Policz odległości**, żeby zobaczyć podpowiedzi „co jest po drodze” (domyślnie darmowy OSRM).
 8. Na każdy dzień sam wybierz pierwszy przystanek, a potem kolejne z podpowiedzianej listy — albo naciśnij **Zaproponuj rozkład**, żeby od razu rozłożyć resztę zleceń, i popraw ręcznie. Przycisk **Prowadź** otwiera Google Maps.
 
-Nie ma ustawiania przerw ani wyboru dni roboczych — tydzień to zawsze 7 dni. Domyślnie żadnych płatności ani konta rozliczeniowego Google — chyba że sam wpiszesz w Ustawieniach własny klucz Google Maps API (opcja opisana w README, wtedy Google nalicza opłaty powyżej Twojego darmowego limitu).
+Nie ma ustawiania przerw ani wyboru dni roboczych — tydzień to zawsze 7 dni. Bez płatności ani konta rozliczeniowego — trasy zawsze liczy darmowy OSRM.
 
 ## Nocleg i składy kruszywa
 
 Przy ostatnim przystanku dnia jest przycisk „Nocleg tutaj zamiast powrotu” — zaznacz, jeśli ekipa zostaje na noc; pojawi się odnośnik do Booking.com, a kolejny dzień wystartuje z tego miejsca zamiast z bazy. Przy zleceniu i przy mapie dnia są przyciski do szukania składów kruszywa/kamienia — w pobliżu punktu albo po drodze całego dnia, przez Google Maps i OpenStreetMap.
+
+## Zobacz miejsce pracy i notatki
+
+Przy każdym przystanku jest przycisk „Zobacz miejsce pracy” — mapa z opcjonalną ortofotomapą i sieciami uzbrojenia terenu (prąd, gaz, wodociąg, kanalizacja i inne, z rejestru GESUT) plus odnośnik do Street View. Zamiast przycisku „Start” jest „Dodaj notatkę” — notatka od razu pokazuje się przy tym punkcie na liście.
 
 ## Dla drugiego telefonu
 

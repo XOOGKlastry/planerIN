@@ -1,6 +1,6 @@
 # PaczkoPlan
 
-Aplikacja PWA dla ekipy montującej i serwisującej paczkomaty. Działa na iPhonie, Androidzie i komputerze. Nawigacja wyłącznie w Google Maps. Bez kont i bez ustawiania przerw. Domyślnie w pełni bezpłatna (OSRM); Google Distance Matrix jest opcją, którą włączasz sam swoim kluczem.
+Aplikacja PWA dla ekipy montującej i serwisującej paczkomaty. Działa na iPhonie, Androidzie i komputerze. Nawigacja wyłącznie w Google Maps. W pełni bezpłatna — trasy liczy darmowy OSRM, bez kluczy i kont rozliczeniowych. Bez kont i bez ustawiania przerw.
 
 ## Pierwsze uruchomienie
 
@@ -33,7 +33,7 @@ Przy każdym kandydacie widać też czas powrotu do bazy, gdyby to on był ostat
 
 Kolejność w dniu można zmienić przeciąganiem (komputer) albo przyciskami góra/dół (telefon). „Zmień dzień” przenosi wizytę na inny dzień, „Usuń” zwraca ją do puli nieprzypisanych. Zlecenia bez współrzędnych lub niepotwierdzone (uwaga „nie jechać bez potwierdzenia”) nie mają aktywnego przycisku „Dodaj”, dopóki nie zostaną uzupełnione. Aplikacja nie zastępuje nieznanego dojazdu zerem ani fikcyjną trasą w linii prostej. Przy wielu ekipach wybierz jedną ekipę.
 
-Domyślnie czasy są szacunkiem darmowego OSRM bez bieżących korków, do 70 lokalizacji naraz. Google Maps wyznacza bieżący dojazd osobno podczas nawigacji i nie zwraca swojego ETA do aplikacji. Używany profil to jazda samochodem; ograniczenia ciężarówek nie są modelowane.
+Czasy są szacunkiem darmowego OSRM bez bieżących korków, do 70 lokalizacji naraz. Google Maps wyznacza bieżący dojazd osobno podczas nawigacji i nie zwraca swojego ETA do aplikacji. Używany profil to jazda samochodem; ograniczenia ciężarówek nie są modelowane.
 
 ## Nocleg w trasie
 
@@ -45,16 +45,19 @@ Booking.com to zwykły odnośnik wyszukiwania (adres/miejscowość jako fraza) �
 
 Przy szczegółach zlecenia jest przycisk „Składy kruszywa w pobliżu” (szuka w promieniu ok. 8 km od tego punktu), a przy mapie dnia — „Znajdź składy po drodze” (szuka w prostokącie obejmującym bazę i wszystkie przystanki tego dnia). Obie opcje najpierw dają gotowy odnośnik do wyszukiwania w Google Maps, a poniżej doładowują listę konkretnych obiektów z OpenStreetMap (kopalnie, składy materiałów budowlanych) z odległością i odnośnikiem do nawigacji. Wyszukiwanie OSM czasem odpowiada wolno albo z błędem 504 — to przeciążenie darmowego serwera Overpass, nie awaria aplikacji; odnośnik do Google Maps działa zawsze.
 
-## Google Distance Matrix (opcjonalnie, płatne)
+## Zobacz miejsce pracy
 
-W Ustawieniach można wpisać własny klucz Google Maps API. Wtedy „Policz odległości” pyta Google Distance Matrix zamiast darmowego OSRM — dokładniejsze, ale **płatne powyżej darmowego limitu Twojego konta Google Cloud**. Zanim wpiszesz klucz:
+Przy każdym przystanku i w szczegółach zlecenia jest przycisk „Zobacz miejsce pracy”: mapa danego punktu z podkładem OpenStreetMap, do którego można doklikać:
 
-- Załóż projekt w Google Cloud Console, włącz Distance Matrix API (i Maps JavaScript API, z którego korzysta w przeglądarce) i podepnij kartę.
-- Ogranicz klucz do własnej domeny (HTTP referrer: `https://xoogklastry.github.io/*`), żeby nikt inny go nie wykorzystał, nawet gdyby go podejrzał.
-- Ustaw **budżet i alert** w sekcji Billing — to jedyny realny „kaganiec” na wydatki; aplikacja tylko pokazuje przed każdym zapytaniem, ile par lokalizacji sprawdzi (n×n), i wymaga potwierdzenia.
-- Tryb Google obsługuje do 25 lokalizacji naraz (razem z bazą) — to limit tego zapytania w Google. Więcej punktów: podziel na ekipy/tygodnie albo użyj darmowego OSRM.
+- **Ortofotomapę** — zdjęcie lotnicze z Głównego Urzędu Geodezji i Kartografii (usługa WMS ORTO, bez klucza).
+- **Sieci uzbrojenia terenu (GESUT)** — osobne przełączniki dla sieci wodociągowej, kanalizacyjnej, elektroenergetycznej, gazowej, ciepłowniczej, telekomunikacyjnej, specjalnej, niezidentyfikowanej i urządzeń, z krajowej usługi integracyjnej KIUT prowadzonej przez GUGiK. Te warstwy są widoczne dopiero przy bardzo dużym przybliżeniu (blisko adresu, nie widoku miasta) i mogą nie obejmować wszystkich powiatów — dane pochodzą od 385 różnych podmiotów prowadzących rejestr.
+- **Street View** — zwykły odnośnik do panoramy Google Maps w danym punkcie, bez klucza API.
 
-Klucz zapisuje się tylko na tym telefonie (w ustawieniach, nie w repozytorium) i **nigdy nie jest dołączany do „Przekaż plan”** — udostępniona kopia planu nie przenosi Twojego klucza (i Twoich opłat) na telefon kolegi. Każdy, kto chce liczyć przez Google, wpisuje własny klucz.
+Wszystkie te usługi są publiczne i bezpłatne; żadna nie wymaga konta ani klucza.
+
+## Notatki przy punkcie
+
+Zamiast przycisku „Start” każdy przystanek ma przycisk „Dodaj notatkę”. Notatka jest przypisana do lokalizacji (nie do konkretnego zlecenia) i pokazuje się od razu na karcie przystanku oraz w liście podpowiedzi kolejnego przystanku — przydatne np. na „brama zamknięta, dzwonić na domofon 12”. Status wykonania (w trakcie / wykonano) nadal ustawia się w „Szczegółach” zlecenia.
 
 ## Zapis i przekazywanie
 
@@ -66,18 +69,16 @@ Offline: interfejs, lista, opisy, statusy i zapisane wyniki pozostają dostępne
 
 ## Usługi
 
-Bezpłatne, bez klucza:
+Wszystko poniżej jest bezpłatne i nie wymaga klucza ani konta:
 - Lokalizacje: publiczny endpoint InPost Points bez tokena, gdy dostępny; zapasowo wyszukiwanie adresu w Nominatim z zatwierdzeniem wyniku. Endpoint InPost może zmienić zasady dostępu; pozostają adres i ręczna pinezka.
-- Trasy i macierz (domyślnie): publiczny serwer demonstracyjny OSRM. Bez klucza i opłat, ale bez gwarancji dostępności.
+- Trasy i macierz: publiczny serwer demonstracyjny OSRM. Bez klucza i opłat, ale bez gwarancji dostępności.
 - Podkład mapy: OpenStreetMap, z widocznym oznaczeniem źródła.
-- Nawigacja: zwykłe odnośniki Google Maps, bez Google Routes API i bez konta rozliczeniowego.
+- Ortofotomapa i sieci uzbrojenia terenu (GESUT/KIUT): usługi WMS Głównego Urzędu Geodezji i Kartografii.
+- Nawigacja i Street View: zwykłe odnośniki Google Maps, bez Google Maps Platform API i bez konta rozliczeniowego.
 - Booking.com: zwykły odnośnik wyszukiwania, bez konta i klucza.
 - Składy kruszywa: publiczny Overpass API (OpenStreetMap), plus odnośnik wyszukiwania w Google Maps.
 
-Opcjonalne, wymaga własnego klucza i konta rozliczeniowego:
-- Trasy i macierz (jeśli wpiszesz klucz w Ustawieniach): Google Distance Matrix. Szczegóły i ostrzeżenia o kosztach wyżej.
-
-Zapytania aplikacji do darmowych usług są kolejkowane z odstępem co najmniej 1,2 s. Lokalizacje i macierz są ponownie używane. Nie ma geokodowania przy każdym wpisanym znaku ani wstępnego pobierania kafelków.
+Zapytania aplikacji do usług objętych kolejką (InPost, Nominatim, OSRM, Overpass) są rozdzielone odstępem co najmniej 1,2 s. Lokalizacje i macierz OSRM są ponownie używane. Nie ma geokodowania przy każdym wpisanym znaku ani wstępnego pobierania kafelków.
 
 ## Uruchomienie i publikacja
 
@@ -94,7 +95,7 @@ Repozytorium zawiera workflow GitHub Pages. W Settings → Pages wybierz GitHub 
 
 ## Sprawdzenia
 
-`node --test tests/*.test.mjs` sprawdza importer, daty, duplikaty, ranking kandydatów wg dojazdu, podsumowanie trasy dnia (w tym nocleg jako inny punkt startu), auto-rozkład, adresy URL (Google Maps/wyszukiwanie/Booking.com) i kopie danych — w tym że plik od kolegi nie może zawierać cudzego klucza Google. Opcjonalny test rzeczywistego Excela korzysta ze zmiennej `T38_EXCEL`; plik źródłowy nie jest częścią repozytorium. Żadne testy nie składają zleceń, nie wysyłają wiadomości ani nie wołają Google/Overpass na żywo.
+`node --test tests/*.test.mjs` sprawdza importer, daty, duplikaty, ranking kandydatów wg dojazdu, podsumowanie trasy dnia (w tym nocleg jako inny punkt startu), auto-rozkład, adresy URL (Google Maps/wyszukiwanie/Street View/Booking.com), kopie danych oraz że tylko darmowy OSRM liczy trasy (bez Google Distance Matrix czy zaszytego klucza). Opcjonalny test rzeczywistego Excela korzysta ze zmiennej `T38_EXCEL`; plik źródłowy nie jest częścią repozytorium. Żadne testy nie składają zleceń, nie wysyłają wiadomości ani nie wołają zewnętrznych usług na żywo.
 
 ## Biblioteki i dane
 

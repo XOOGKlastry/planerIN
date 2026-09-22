@@ -86,10 +86,25 @@ test('the day is one timeline — start, legs, stops, next-stop suggestions, ret
   const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
   const styles=fs.readFileSync(path.join(root,'styles.css'),'utf8');
   const route=app.slice(app.indexOf('function renderRoute'),app.indexOf('function renderRouteEnd'));
-  assert.match(route,/\$\{startRow\}\$\{stops\}\$\{renderAddSection\(day\)\}\$\{end\}/);
+  assert.match(route,/\$\{startRow\}\$\{renderDoneGroup\(route\)\}\$\{stops\}\$\{renderAddSection\(day\)\}\$\{end\}/);
   assert.match(app,/case 'toggle-stop':setOpenStop\(id\)/);
   assert.match(styles,/\.stop-actions\{display:none/);
   assert.match(styles,/\.stop\.open \.stop-actions\{display:flex\}/);
+});
+test('a finished stop leaves the active route — one-tap toggle, folded "Zrobione" group, out of suggestions, map and optimizing',()=>{
+  const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
+  const styles=fs.readFileSync(path.join(root,'styles.css'),'utf8');
+  assert.match(app,/case 'toggle-done':await toggleDone\(id\)/);
+  assert.match(app,/case 'toggle-done-list':showDone=!showDone/);
+  assert.match(app.slice(app.indexOf('function renderStop'),app.indexOf('function renderCandidate')),/<button class="tool check" data-act="toggle-done"/);
+  const route=app.slice(app.indexOf('function renderRoute'),app.indexOf('function renderRouteEnd'));
+  assert.match(route,/route\.map\(\(v,i\)=>v\.done\?'':/);
+  assert.match(route,/function renderDoneGroup/);
+  assert.match(app.slice(app.indexOf('function renderAddSection'),app.indexOf('function importDrop')),/!placed\.has\(v\.id\)&&!v\.done/);
+  assert.match(app.slice(app.indexOf('function nextStopCandidates'),app.indexOf('function proximityWarning')),/!v\.blocked&&!v\.done/);
+  assert.match(app.slice(app.indexOf('async function optimizeDayOrder'),app.indexOf('async function deleteImport')),/\[\.\.\.done\.map\(v=>v\.id\),\.\.\.optimized\.map/);
+  assert.match(app.slice(app.indexOf('function drawMap'),app.indexOf('function setOpenStop')),/if\(v\.done&&!inRoute\)continue/);
+  assert.match(styles,/\.map-pin\.done\{/);
 });
 test('phones and tablets switch between the list and the map instead of stacking them',()=>{
   const app=fs.readFileSync(path.join(root,'app.js'),'utf8');

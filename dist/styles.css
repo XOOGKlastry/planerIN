@@ -110,6 +110,23 @@ dialog{border:0;padding:0;border-radius:18px;width:min(640px,calc(100% - 28px));
 .tl-more .tl-main{padding:2px 0 8px}
 .more-link{min-height:0;padding:6px 8px;gap:4px;border:0;background:none;color:#285798;font-size:13px}.more-link:hover{background:#eef3fb}.more-link svg{width:16px;height:16px}
 
+/* Done: one-tap toggle, folded "Zrobione" group, counts of what is left */
+.tool.check{border:1.5px solid #bcd9c6;border-radius:50%;background:#fff;color:var(--ok)}.tool.check:hover{border-color:#8fc4a2;background:#e2f2e8}
+.tl-done-head .tl-main{padding:8px 0}
+.done-summary{display:block;width:100%;min-height:0;padding:7px 11px;border:1px solid #cfe6d7;border-radius:10px;background:#f1f8f3;color:inherit;text-align:left;font-weight:inherit}.done-summary:hover{background:#e6f3ea}
+.done-summary strong{display:flex;align-items:center;gap:7px;font-size:14px;color:#1b5e37}.done-summary strong svg{width:16px;height:16px;margin-left:auto;color:#5b8f6d}
+.done-summary small{display:block;margin-top:2px;overflow:hidden;font-size:12px;color:#5b7f69;white-space:nowrap;text-overflow:ellipsis}
+.tl-done-head.all .done-summary{border-color:#b5dcc2;background:#dcefe3}
+.count.ok{background:#dcefe3;color:#1b5e37}
+.done-row .tl-main{padding:7px 0}.done-row .tl-main>strong{font-weight:600;color:#5b6f66;text-decoration:line-through;text-decoration-color:#8fb49d}
+.done-row .tl-node{width:26px;height:26px}.done-row .tl-node svg{width:14px;height:14px}
+.chip-action.undo{min-height:32px;padding:5px 9px;font-size:12px;color:#4a5f70}
+.stat.ok{background:#dcefe3}.stat.ok svg,.stat.ok b{color:var(--ok)}.stat.ok-part svg{color:var(--ok)}
+.day-tab.all-done .day-tab-count{color:var(--ok)}.day-tab.all-done.active .day-tab-count{color:#8fe0ae}.day-tab-count svg{width:24px;height:24px;stroke-width:2.2}
+.lg-pin.done{background:#dcefe3;color:var(--ok);font-size:10px}
+.row-done td{color:var(--muted)}.row-done td strong{color:#5b6f66;text-decoration:line-through;text-decoration-color:#8fb49d}
+.done-mark{display:inline-flex;margin-right:6px;vertical-align:-3px;color:var(--ok)}.done-mark svg{width:16px;height:16px}
+
 @media(min-width:1550px){.main{padding:35px 45px}.map-canvas{height:640px}.work-area{grid-template-columns:minmax(0,1fr) minmax(0,1.1fr)}}
 @media(max-width:1150px){.shell{grid-template-columns:180px 1fr}.sidebar{width:180px;padding:25px 13px}.brand{font-size:18px}.brand-mark{width:33px;height:33px}.main{padding:25px 22px}.topbar{flex-wrap:wrap}.empty-grid{grid-template-columns:1.2fr 1fr}.settings-layout{grid-template-columns:1fr}.settings-aside{display:none}.work-area{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr)}.map-canvas{height:500px}}
 @media(max-width:850px){.shell{display:block}.sidebar{display:none}.main{padding:22px 18px calc(100px + env(safe-area-inset-bottom));}.mobile-nav{display:grid;grid-template-columns:repeat(4,1fr);position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #dce2e8;padding:7px 7px calc(7px + env(safe-area-inset-bottom));z-index:900;box-shadow:0 -4px 15px #17243208}.mobile-nav button{border:0;background:none;display:flex;flex-direction:column;gap:5px;color:#687b8b;min-height:54px;font-size:11px;font-weight:550;padding:8px 3px}.mobile-nav button.active{color:#172432;background:#fff3c4;border-radius:9px;font-weight:700}.mobile-nav svg{width:21px;height:21px}.topbar{margin-bottom:22px;gap:14px;align-items:center}.topbar h1{font-size:26px}.topbar p{font-size:12px}.empty-grid{grid-template-columns:1fr}.empty-grid .aside-intro{display:none}.panel-pad{padding:22px}.toolbar{flex-wrap:wrap}.toolbar input{max-width:none}.filter-count{margin-left:auto}.data-table th,.data-table td{padding:13px}.data-table .hide-mobile{display:none}#toast{bottom:calc(86px + env(safe-area-inset-bottom))}.notice{font-size:13px;padding:12px}.notice button{font-size:12px}
@@ -137,6 +154,7 @@ dialog{border:0;padding:0;border-radius:18px;width:min(640px,calc(100% - 28px));
   .map-legend{gap:4px 8px;font-size:11px}
   .week-bar{flex-wrap:nowrap}.crew-chip{display:none}
   .daybar-stats{gap:4px}.stat{padding:4px 7px;font-size:12.5px}.stat svg{width:14px;height:14px}
+  .tl-side .tool{width:36px;height:36px;min-height:36px}
 }
 .form-grid select{max-width:100%}
 .map-base-picker{background:#f8fafb;border:1px solid var(--line);padding:10px;border-radius:10px}.map-base-title-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding:0 2px}.map-base-title{font-size:11px;font-weight:750;letter-spacing:.6px;text-transform:uppercase;color:var(--muted)}.map-base-row{display:flex;gap:7px;overflow-x:auto;padding-bottom:2px}.map-base-thumb{position:relative;width:46px;height:46px;border-radius:8px;border:2px solid transparent;background-size:cover;background-position:center;background-color:#dfe5ea;padding:0;min-height:0;overflow:hidden;flex:none}.map-base-thumb.active{border-color:var(--yellow);box-shadow:0 0 0 1px var(--yellow)}.map-base-thumb span{position:absolute;z-index:1;left:0;right:0;bottom:2px;text-align:center;color:#fff;text-shadow:0 1px 3px #000a;line-height:1.1;font-size:8px;font-weight:750}.map-base-thumb::after{content:'';position:absolute;inset:0;background:linear-gradient(to top,#000a,transparent 65%)}
@@ -144,6 +162,6 @@ dialog{border:0;padding:0;border-radius:18px;width:min(640px,calc(100% - 28px));
 .icon-btn{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;color:#fff;text-decoration:none;flex:none}.icon-btn svg{width:17px;height:17px}
 .leaflet-container.parcels-active{cursor:pointer}
 .streetview-link{background:#f4511e;border-color:#f4511e}.streetview-link:hover{background:#e0451a}
-.map-pin.day0{background:#2f6fed}.map-pin.day1{background:#16a34a}.map-pin.day2{background:#d97706}.map-pin.day3{background:#db2777}.map-pin.day4{background:#7c3aed}.map-pin.day5{background:#0891b2}.map-pin.day6{background:#b91c1c}
+.map-pin.day0{background:#2f6fed}.map-pin.day1{background:#16a34a}.map-pin.day2{background:#d97706}.map-pin.day3{background:#db2777}.map-pin.day4{background:#7c3aed}.map-pin.day5{background:#0891b2}.map-pin.day6{background:#b91c1c}.map-pin.done{background:#dcefe3;color:var(--ok);box-shadow:0 1px 5px #0003}
 .map-pin.active{background:var(--yellow);color:var(--navy)}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}

@@ -112,7 +112,12 @@ export function makeVisits(jobs, locations) {
     if(!grouped.has(key))grouped.set(key,{id:`v:${hash(key)}`,locationId:job.locationId,location:locations[job.locationId],jobs:[]});
     grouped.get(key).jobs.push(job);
   }
-  return [...grouped.values()].map(v=>({...v,id:`v:${hash(v.jobs.map(j=>j.id).sort().join('|'))}`,blocked:v.jobs.some(j=>j.requiresConfirmation&&!j.confirmed),done:v.jobs.every(j=>j.status==='done')}));
+  // A visit is done when every job at that stop is done, and parked for later ("na później") when nothing is
+  // left to do now — the crew put it aside instead of deleting it, so it stays out of the day but keeps its data.
+  return [...grouped.values()].map(v=>{
+    const done=v.jobs.every(j=>j.status==='done');
+    return {...v,id:`v:${hash(v.jobs.map(j=>j.id).sort().join('|'))}`,blocked:v.jobs.some(j=>j.requiresConfirmation&&!j.confirmed),done,later:!done&&v.jobs.every(j=>j.status==='done'||j.status==='later')};
+  });
 }
 export function routeCost(route,cost,startIndex=0){let total=0,prev=startIndex;for(const i of route){const leg=cost[prev]?.[i];if(!Number.isFinite(leg))return Infinity;total+=leg;prev=i;} const end=cost[prev]?.[0];return total+(Number.isFinite(end)?end:Infinity);}
 // Directed 2-opt fallback for routes too long for the exact solver below.
@@ -215,12 +220,12 @@ export function parseParcelWkt(wkt) {
   throw new Error('Nieznana geometria działki.');
 }
 export function validateBackup(data) {
-  if(!data||data.version!==VERSION||!Array.isArray(data.jobs)||!data.locations||!data.settings||!data.plans)throw new Error('To nie jest plik planu PaczkoPlan.');
+  if(!data||data.version!==VERSION||!Array.isArray(data.jobs)||!data.locations||!data.settings||!data.plans)throw new Error('To nie jest plik planu szlaq.');
   if(data.jobs.length>3000)throw new Error('Plik ma zbyt wiele zleceń.');
   if(!isoDate(data.settings.week))throw new Error('Niepoprawne ustawienia planu.');
   if(data.settings.base&&!validCoords(data.settings.base))throw new Error('Niepoprawne współrzędne bazy.');
   const jobIds=new Set();
-  for(const job of data.jobs){if(!job.id||jobIds.has(job.id)||!data.locations[job.locationId]||!isoDate(job.week)||!['todo','doing','done'].includes(job.status))throw new Error('Niepoprawne zlecenie w kopii planu.');jobIds.add(job.id);}
+  for(const job of data.jobs){if(!job.id||jobIds.has(job.id)||!data.locations[job.locationId]||!isoDate(job.week)||!['todo','doing','done','later'].includes(job.status))throw new Error('Niepoprawne zlecenie w kopii planu.');jobIds.add(job.id);}
   for(const p of Object.values(data.plans)){
     if(!p.routes||Object.entries(p.routes).some(([d,ids])=>!/^\d$/.test(d)||+d>6||!Array.isArray(ids)||ids.some(id=>typeof id!=='string')))throw new Error('Niepoprawna trasa w kopii planu.');
     const ids=Object.values(p.routes).flat();if(new Set(ids).size!==ids.length)throw new Error('Wizyta występuje w kilku dniach.');

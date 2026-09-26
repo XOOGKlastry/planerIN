@@ -1,4 +1,4 @@
-# PaczkoPlan
+# szlaq
 
 Aplikacja PWA dla ekipy montującej i serwisującej paczkomaty. Działa na iPhonie, Androidzie i komputerze. Nawigacja wyłącznie w Google Maps. W pełni bezpłatna — trasy liczy darmowy OSRM, bez kluczy i kont rozliczeniowych. Bez kont i bez ustawiania przerw.
 
@@ -6,7 +6,7 @@ Aplikacja PWA dla ekipy montującej i serwisującej paczkomaty. Działa na iPhon
 
 1. Otwórz opublikowaną stronę w Safari na iPhonie.
 2. Udostępnij → Do ekranu początkowego → Otwórz jako aplikację www → Dodaj.
-3. Uruchom ikonę PaczkoPlan. Wczytaj Excel z aplikacji Pliki.
+3. Uruchom ikonę szlaq. Wczytaj Excel z aplikacji Pliki.
 4. W Ustawieniach wybierz miejsce startu/powrotu. Tydzień pokazuje dni robocze Pon–Pt; nie ma soboty ani niedzieli.
 5. Naciśnij żółty przycisk przeliczenia odległości w pasku dnia. Dla każdego dnia dokładaj kolejne przystanki z „Następny przystanek” (przycisk „+”) albo klikając pinezki na mapie; na koniec „Optymalizuj” poprawi kolejność.
 

@@ -1,17 +1,17 @@
-# PaczkoPlan — instalacja na iPhonie
+# szlaq — instalacja na iPhonie
 
 1. Otwórz stronę aplikacji w **Safari**.
 2. Wybierz **Udostępnij → Do ekranu początkowego**.
 3. Włącz otwieranie jako aplikację www i naciśnij **Dodaj**.
-4. Uruchom ikonę **PaczkoPlan** z ekranu telefonu.
+4. Uruchom ikonę **szlaq** z ekranu telefonu.
 5. Wybierz **Importuj Excel** i plik z aplikacji Pliki.
 6. W Ustawieniach wpisz bazę — miejsce startu i codziennego powrotu.
 7. Naciśnij żółty przycisk **Policz odległości** w pasku dnia (darmowy OSRM) — pojawią się czasy dojazdu i podpowiedzi „co jest po drodze”.
-8. Wybierz dzień u góry. Trasa dnia to oś czasu: start → przystanki → **Następny przystanek** → powrót. Dokładaj kolejne punkty przyciskiem „+” (najbliższy jest wyróżniony) albo klikając pinezki na mapie; na telefonie przełączasz **Lista | Mapa**. Stuknięcie w przystanek rozwija jego akcje (szczegóły, miejsce pracy, notatka, inny dzień, kolejność, usunięcie). W przypiętym pasku dnia masz sumy (czas, kilometry, powrót), **Optymalizuj** (najkrótsza kolejność) i **Prowadź całą trasę** w Google Maps; okrągła strzałka przy przystanku prowadzi do jednego punktu. Czerwony znacznik oznacza punkt w odległości poniżej 20 minut jazdy od trasy (widoczny po policzeniu odległości). Zielony przycisk z ptaszkiem oznacza przystanek jako zrobiony — wypada on wtedy z trasy do zwiniętego wiersza „Zrobione” na górze (tam też „Cofnij”), a kafelek dnia pokazuje, ile zostało.
+8. Wybierz dzień u góry. Trasa dnia to oś czasu: start → przystanki → **Następny przystanek** → powrót. Dokładaj kolejne punkty przyciskiem „+” (najbliższy jest wyróżniony) albo klikając pinezki na mapie; na telefonie przełączasz **Lista | Mapa**. Stuknięcie w przystanek rozwija jego akcje (szczegóły, miejsce pracy, notatka, inny dzień, kolejność, usunięcie). W przypiętym pasku dnia masz sumy (czas, kilometry, powrót), **Optymalizuj** (najkrótsza kolejność) i **Prowadź całą trasę** w Google Maps; okrągła strzałka przy przystanku prowadzi do jednego punktu. Czerwony znacznik oznacza punkt w odległości poniżej 20 minut jazdy od trasy (widoczny po policzeniu odległości). Zielony przycisk z ptaszkiem oznacza przystanek jako zrobiony — wypada on wtedy z trasy do zwiniętego wiersza „Zrobione” na górze (tam też „Cofnij”), a kafelek dnia pokazuje, ile zostało. Po stuknięciu w przystanek pokazują się trzy stany: zielone **Zrobione**, żółte **Na później** (punkt wypada z trasy i z podpowiedzi, ale zostaje na liście — znajdziesz go w zwiniętej grupie „Na później”, jednym przyciskiem wraca do dnia) i czerwone **Usuń zlecenie** (kasuje zlecenie z telefonu, po potwierdzeniu, bez powrotu). Na pasku mapy jest też przycisk z celownikiem **Gdzie jestem** — pokazuje Twoją pozycję na mapie (niebieska kropka z kółkiem dokładności); ten sam przycisk masz w oknie „Zobacz miejsce pracy”.
 
 Nie ma ustawiania przerw. Tydzień obejmuje pięć dni roboczych (Pon–Pt) — soboty i niedzieli nie ma wśród kafelków dni. Bez płatności ani konta rozliczeniowego — trasy zawsze liczy darmowy OSRM.
 
-**Aktualizacje:** aplikacja sama sprawdza nową wersję, gdy wraca na ekran (np. po przełączeniu z innej aplikacji), więc zwykle wystarczy mieć internet i chwilę poczekać, aż na górze pojawi się pasek „Dostępna nowa wersja”. Jeśli mimo to go nie widać, w pełni zamknij PaczkoPlan (przeciągnij w górę w przełączniku aplikacji) i otwórz ikonę ponownie.
+**Aktualizacje:** aplikacja sama sprawdza nową wersję, gdy wraca na ekran (np. po przełączeniu z innej aplikacji), więc zwykle wystarczy mieć internet i chwilę poczekać, aż na górze pojawi się pasek „Dostępna nowa wersja”. Jeśli mimo to go nie widać, w pełni zamknij szlaq (przeciągnij w górę w przełączniku aplikacji) i otwórz ikonę ponownie.
 
 ## Nocleg i składy kruszywa
 
@@ -29,7 +29,7 @@ W zakładce Import przy każdym wczytanym pliku jest przycisk usuwania — kasuj
 
 ## Dla drugiego telefonu
 
-Naciśnij **Przekaż plan**. Wyślij plik koledze lub zapisz go w aplikacji Pliki. Na drugim telefonie w PaczkoPlan wybierz **Import → Wczytaj plan od kolegi**. Każdy telefon ma własny zapis. Zmiany nie synchronizują się automatycznie.
+Naciśnij **Przekaż plan**. Wyślij plik koledze lub zapisz go w aplikacji Pliki. Na drugim telefonie w szlaq wybierz **Import → Wczytaj plan od kolegi**. Każdy telefon ma własny zapis. Zmiany nie synchronizują się automatycznie.
 
 ## Bez internetu
 

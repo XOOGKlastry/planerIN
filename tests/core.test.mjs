@@ -8,6 +8,7 @@ const rows=[headers,['2026-09-14','TEST01M','Sklep Opole Testowa 1','Opole','Ser
 test('dates are calendar dates, week starts Monday',()=>{assert.equal(monday('2026-09-20'),'2026-09-14');assert.equal(monday('2026-09-14'),'2026-09-14');assert.equal(isoDate('14.09.2026'),'2026-09-14');assert.equal(isoDate('31.02.2026'),null);});
 test('import preserves distinct jobs at same location and flags source condition',()=>{const parsed=parseRows(rows);assert.equal(parsed.jobs.length,3);assert.equal(Object.keys(parsed.locations).length,2);const vs=makeVisits(parsed.jobs,parsed.locations);assert.equal(vs.length,2);assert.equal(vs[0].jobs.length,2);assert.equal(vs[1].blocked,true);assert.equal(parsed.jobs[2].ticket,'');});
 test('reimport is idempotent and retains user status and coordinates',()=>{const parsed=parseRows(rows);let state=mergeImport(defaultState(),parsed);state.jobs[0].status='done';Object.assign(state.locations['pm:TEST01M'],{lat:50,lng:18,geoStatus:'verified'});state=mergeImport(state,parsed);assert.equal(state.jobs.length,3);assert.equal(state.jobs[0].status,'done');assert.equal(state.locations['pm:TEST01M'].lat,50);});
+test('a visit is parked for later only when nothing is left to do now, and later is never done',()=>{const p=parseRows(rows);for(const job of p.jobs)job.status='later';const vs=makeVisits(p.jobs,p.locations);assert.equal(vs[0].later,true);assert.equal(vs[0].done,false);p.jobs[0].status='todo';assert.equal(makeVisits(p.jobs,p.locations)[0].later,false);const d=parseRows(rows);for(const job of d.jobs)job.status='done';assert.equal(makeVisits(d.jobs,d.locations)[0].later,false);assert.equal(makeVisits(d.jobs,d.locations)[0].done,true);const m=parseRows(rows);m.jobs[0].status='done';m.jobs[1].status='later';assert.equal(makeVisits(m.jobs,m.locations)[0].later,true);});
 test('visit identifier is stable across reimport regardless of job status',()=>{const p=parseRows(rows),before=makeVisits(p.jobs,p.locations)[0].id;p.jobs[0].status='done';assert.equal(makeVisits(p.jobs,p.locations)[0].id,before);});
 const visits=n=>Array.from({length:n},(_,i)=>({id:`v${i}`,jobs:[]}));
 const matrix=n=>Array.from({length:n+1},(_,i)=>Array.from({length:n+1},(_,j)=>i===j?0:600));
@@ -110,6 +111,7 @@ test('backup validation rejects bad structure and job references, accepts a fres
   assert.throws(()=>validateBackup({...defaultState(),settings:{...defaultState().settings,week:'not-a-date'}}));
   assert.doesNotThrow(()=>validateBackup(defaultState()));
 });
+test('a parked job survives the save/load round trip — "later" is a valid stored status',()=>{const parsed=parseRows(rows);const state=mergeImport(defaultState(),parsed);state.jobs[0].status='later';assert.doesNotThrow(()=>validateBackup(JSON.parse(JSON.stringify(state))));state.jobs[1].status='parked';assert.throws(()=>validateBackup(JSON.parse(JSON.stringify(state))));});
 test('backup validation rejects a route holding a raw matrix index instead of a visit id',()=>{
   const bad={...defaultState(),plans:{x:{routes:{0:[2]}}}};
   assert.throws(()=>validateBackup(bad));
